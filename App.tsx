@@ -6,6 +6,7 @@ import { Dashboard } from './pages/Dashboard';
 import { LandingPage } from './pages/LandingPage';
 import { RecordPage } from './pages/RecordPage';
 import { SupplyPage } from './pages/SupplyPage';
+import { ProfilePage } from './pages/ProfilePage';
 import { SettingsPage } from './pages/SettingsPage';
 
 // Placeholder components for other routes
@@ -25,26 +26,34 @@ const PlaceholderPage: React.FC<PlaceholderPageProps> = ({ title }) => (
   </div>
 );
 
+import { DialogProvider } from './DialogContext';
+import { UserProvider } from './UserContext';
+
 const App: React.FC = () => {
   return (
     <ThemeProvider>
-      <Router>
-        <Routes>
-          {/* Public Route */}
-          <Route path="/" element={<LandingPage />} />
-          
-          {/* Protected Routes (Wrapped in Layout) */}
-          <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
-          <Route path="/civil-reg" element={<Layout><RecordPage /></Layout>} />
-          <Route path="/philsys" element={<Layout><SupplyPage /></Layout>} />
-          <Route path="/statistics" element={<Layout><PlaceholderPage title="Property & Assets" /></Layout>} />
-          <Route path="/office" element={<Layout><PlaceholderPage title="Office Information" /></Layout>} />
-          <Route path="/settings" element={<Layout><SettingsPage /></Layout>} />
-          
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Router>
+      <UserProvider>
+        <DialogProvider>
+          <Router>
+            <Routes>
+              {/* Public Route */}
+              <Route path="/" element={<LandingPage />} />
+
+              {/* Protected Routes (Wrapped in Layout) */}
+              <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
+              <Route path="/civil-reg" element={<Layout><RecordPage /></Layout>} />
+              <Route path="/philsys" element={<Layout><SupplyPage /></Layout>} />
+              <Route path="/statistics" element={<Layout><PlaceholderPage title="Property & Assets" /></Layout>} />
+              <Route path="/office" element={<Layout><PlaceholderPage title="Office Information" /></Layout>} />
+              <Route path="/profile" element={<Layout><ProfilePage /></Layout>} />
+              <Route path="/settings" element={<Layout><SettingsPage /></Layout>} />
+
+              {/* Fallback */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Router>
+        </DialogProvider>
+      </UserProvider>
     </ThemeProvider>
   );
 };

@@ -1,5 +1,5 @@
 import React, { Fragment, useEffect } from 'react';
-import { LucideIcon, X } from 'lucide-react';
+import { LucideIcon, X, AlertCircle, Info, HelpCircle, CheckCircle } from 'lucide-react';
 
 interface CardProps {
   children: React.ReactNode;
@@ -73,14 +73,14 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
 }
 
-export const Button: React.FC<ButtonProps> = ({ 
-  children, 
-  variant = 'primary', 
-  className = '', 
-  ...props 
+export const Button: React.FC<ButtonProps> = ({
+  children,
+  variant = 'primary',
+  className = '',
+  ...props
 }) => {
   const baseStyles = "inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-[13px] font-semibold transition-all focus:outline-none active:scale-95 disabled:opacity-50 disabled:pointer-events-none whitespace-nowrap";
-  
+
   const variants = {
     primary: "bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200 shadow-sm",
     blue: "bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-500/10",
@@ -108,7 +108,7 @@ export const Badge: React.FC<BadgeProps> = ({ children, variant = 'default', cla
     warning: "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20",
     info: "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20",
   };
-  
+
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${variants[variant]} ${className}`}>
       {children}
@@ -127,7 +127,7 @@ export const ProgressBar: React.FC<{ value: number; max?: number; color?: string
         </div>
       )}
       <div className="h-2 w-full bg-zinc-100 dark:bg-zinc-800/50 rounded-full overflow-hidden">
-        <div 
+        <div
           className={`h-full ${color} transition-all duration-500 ease-out rounded-full`}
           style={{ width: `${percentage}%` }}
         />
@@ -142,9 +142,10 @@ interface ModalProps {
   title: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
+  maxWidth?: string;
 }
 
-export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, footer }) => {
+export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, footer, maxWidth = 'max-w-lg' }) => {
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -160,14 +161,14 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
 
   return (
     <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 sm:p-6 overflow-hidden">
-      <div 
+      <div
         className="fixed inset-0 bg-black/80 backdrop-blur-md transition-opacity duration-300"
         onClick={onClose}
       />
-      <div className="relative w-full max-w-lg bg-white dark:bg-zinc-950 rounded-[32px] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 flex flex-col max-h-[90vh]">
+      <div className={`relative w-full ${maxWidth} bg-white dark:bg-zinc-950 rounded-[32px] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 flex flex-col max-h-[90vh]`}>
         <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100 dark:border-zinc-800 shrink-0">
           <h3 className="text-lg font-bold text-zinc-900 dark:text-white uppercase tracking-tight">{title}</h3>
-          <button 
+          <button
             onClick={onClose}
             className="p-2 text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 rounded-xl transition-all"
           >
@@ -204,8 +205,8 @@ export const Tabs: React.FC<TabsProps> = ({ tabs, activeTab, onTabChange, classN
             onClick={() => onTabChange(tab.id)}
             className={`
               flex items-center gap-2 px-5 py-3.5 text-[11px] font-bold uppercase tracking-widest transition-all border-b-2 flex-shrink-0
-              ${activeTab === tab.id 
-                ? 'border-blue-600 text-blue-600 dark:text-blue-400' 
+              ${activeTab === tab.id
+                ? 'border-blue-600 text-blue-600 dark:text-blue-400'
                 : 'border-transparent text-zinc-500 hover:text-zinc-900 dark:hover:text-white'}
             `}
           >
@@ -213,6 +214,124 @@ export const Tabs: React.FC<TabsProps> = ({ tabs, activeTab, onTabChange, classN
             {tab.label}
           </button>
         ))}
+      </div>
+    </div>
+  );
+};
+
+interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  label?: string;
+}
+
+export const Input: React.FC<InputProps> = ({ label, className = '', ...props }) => {
+  return (
+    <div className="space-y-1.5 w-full">
+      {label && (
+        <label className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest ml-1">
+          {label}
+        </label>
+      )}
+      <input
+        className={`w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2.5 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all ${className}`}
+        {...props}
+      />
+    </div>
+  );
+};
+
+interface ModernDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (value?: any) => void;
+  type: 'alert' | 'confirm' | 'prompt';
+  title: string;
+  message: string;
+  defaultValue?: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+}
+
+export const ModernDialog: React.FC<ModernDialogProps> = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  type,
+  title,
+  message,
+  defaultValue = '',
+  confirmLabel = 'OK',
+  cancelLabel = 'Cancel'
+}) => {
+  const [inputValue, setInputValue] = React.useState(defaultValue);
+
+  useEffect(() => {
+    if (isOpen) setInputValue(defaultValue);
+  }, [isOpen, defaultValue]);
+
+  if (!isOpen) return null;
+
+  const getIcon = () => {
+    switch (type) {
+      case 'alert': return <AlertCircle className="text-blue-500" size={24} />;
+      case 'confirm': return <HelpCircle className="text-amber-500" size={24} />;
+      case 'prompt': return <Info className="text-blue-500" size={24} />;
+      default: return <Info className="text-blue-500" size={24} />;
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4 overflow-hidden">
+      <div
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300"
+        onClick={onClose}
+      />
+      <div className="relative w-full max-w-sm bg-white dark:bg-zinc-950 rounded-[28px] shadow-2xl overflow-hidden animate-in fade-in zoom-in slide-in-from-bottom-4 duration-300">
+        <div className="p-6">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="p-3 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+              {getIcon()}
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-zinc-900 dark:text-white tracking-tight leading-none">{title}</h3>
+              <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-bold uppercase tracking-widest mt-1">System Notification</p>
+            </div>
+          </div>
+
+          <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed mb-6">
+            {message}
+          </p>
+
+          {type === 'prompt' && (
+            <div className="mb-6">
+              <Input
+                autoFocus
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && onConfirm(inputValue)}
+                placeholder="Enter value..."
+              />
+            </div>
+          )}
+
+          <div className="flex gap-3">
+            {type !== 'alert' && (
+              <Button
+                variant="outline"
+                className="flex-1 !rounded-2xl py-3 border-zinc-200 dark:border-zinc-800"
+                onClick={onClose}
+              >
+                {cancelLabel}
+              </Button>
+            )}
+            <Button
+              variant="blue"
+              className="flex-1 !rounded-2xl py-3 shadow-lg shadow-blue-500/20"
+              onClick={() => onConfirm(type === 'prompt' ? inputValue : true)}
+            >
+              {confirmLabel}
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );

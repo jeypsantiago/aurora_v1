@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { 
-  Settings, 
-  Database, 
-  Package, 
-  Building2, 
-  Users, 
-  ShieldCheck, 
-  FileText, 
-  Save, 
-  UserPlus, 
+import {
+  Settings,
+  Database,
+  Package,
+  Building2,
+  Users,
+  ShieldCheck,
+  FileText,
+  Save,
+  UserPlus,
   Key,
   ChevronRight,
   UserCog,
@@ -32,14 +32,23 @@ import {
   Zap,
   AlertTriangle,
   FileCheck,
-  Scale
+  Scale,
+  AlignLeft,
+  ListPlus,
+  Clock,
+  CalendarRange,
+  SeparatorHorizontal,
+  Star,
+  Palette
 } from 'lucide-react';
-import { Card, Badge, Button, Tabs, Modal } from '../components/ui';
+import { Card, Badge, Button, Tabs, Modal, Input } from '../components/ui';
+import { useDialog } from '../DialogContext';
+import { useUsers, User, Role } from '../UserContext';
 
 interface FormField {
   id: string;
   label: string;
-  type: 'text' | 'number' | 'date' | 'select' | 'checkbox' | 'email' | 'tel';
+  type: 'text' | 'number' | 'date' | 'select' | 'checkbox' | 'email' | 'tel' | 'textarea' | 'multiselect' | 'url' | 'datetime' | 'time' | 'section' | 'rating' | 'color';
   required: boolean;
   options?: string[]; // For manual select type
   collectionSource?: string; // Connected data collection key
@@ -65,11 +74,12 @@ interface RISConfig {
 }
 
 export const SettingsPage: React.FC = () => {
+  const { alert, confirm, prompt } = useDialog();
   const [activeTab, setActiveTab] = useState('record');
   const [recordSubTab, setRecordSubTab] = useState('docs');
   const [supplySubTab, setSupplySubTab] = useState('ris');
   const [usersSubTab, setUsersSubTab] = useState('accounts');
-  
+
   // -- State for Registry Settings --
   const [docTypes, setDocTypes] = useState<DocType[]>([
     { id: 'birth', name: 'Birth Certificate', enabled: true, refPrefix: 'BC', refSeparator: '-', refPadding: 6, refIncrement: 1, refStart: 1000 },
@@ -109,11 +119,11 @@ export const SettingsPage: React.FC = () => {
 
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
   const [selectedDocId, setSelectedDocId] = useState('birth');
-  
+
   // New Field State
   const [newFieldName, setNewFieldName] = useState('');
   const [newFieldType, setNewFieldType] = useState<FormField['type']>('text');
-  const [newFieldOptions, setNewFieldOptions] = useState(''); 
+  const [newFieldOptions, setNewFieldOptions] = useState('');
   const [newFieldCollection, setNewFieldCollection] = useState('');
 
   // Rename State
@@ -141,14 +151,27 @@ export const SettingsPage: React.FC = () => {
   const [assetCategories, setAssetCategories] = useState(['Electronics', 'Furniture', 'Vehicles', 'Office Equipment']);
   const [auditSchedule, setAuditSchedule] = useState('Semi-Annual (Every 6 months)');
 
-  // -- State for User Management --
-  const [users, setUsers] = useState([
-    { name: 'Admin One', email: 'admin.aurora@psa.gov.ph', role: 'Super Admin', access: 'Just now' },
-    { name: 'Reg Clerk', email: 'clerk.aurora@psa.gov.ph', role: 'Registry Editor', access: '2h ago' },
-    { name: 'Supply Mgr', email: 'supply.aurora@psa.gov.ph', role: 'Inventory Lead', access: 'Yesterday' },
-  ]);
+  // -- State for User Management (Now handled by UserContext) --
+  const { users, roles, addUser, updateUser, deleteUser, addRole, updateRole, deleteRole } = useUsers();
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
-  const [newUser, setNewUser] = useState({ name: '', email: '', role: 'Viewer Only' });
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [userFormData, setUserFormData] = useState({
+    name: '',
+    email: '',
+    role: 'Viewer Only',
+    gender: 'Male',
+    position: '',
+    password: ''
+  });
+
+  // Role Management State
+  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+  const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
+  const [roleFormData, setRoleFormData] = useState<Omit<Role, 'id'>>({
+    name: '',
+    permissions: [],
+    badgeColor: 'blue'
+  });
 
   // -- Feedback State --
   const [isSaved, setIsSaved] = useState(false);
@@ -158,12 +181,12 @@ export const SettingsPage: React.FC = () => {
     setTimeout(() => setIsSaved(false), 3000);
   };
 
-  const handlePurgeInventory = () => {
-    if (confirm("DANGER: This will wipe ALL inventory items and requisition history. This action cannot be undone. Type 'PURGE' to confirm.")) {
-       const confirmText = prompt("Type PURGE to proceed:");
-       if (confirmText === 'PURGE') {
-         alert("Provincial Inventory has been wiped clean.");
-       }
+  const handlePurgeInventory = async () => {
+    if (await confirm("DANGER: This will wipe ALL inventory items and requisition history. This action cannot be undone. Type 'PURGE' to confirm.")) {
+      const confirmText = await prompt("Type PURGE to proceed:");
+      if (confirmText === 'PURGE') {
+        await alert("Provincial Inventory has been wiped clean.");
+      }
     }
   };
 
@@ -198,8 +221,8 @@ export const SettingsPage: React.FC = () => {
     }
   };
 
-  const deleteDocType = (id: string) => {
-    if (confirm(`Are you sure you want to delete the "${docTypes.find(d => d.id === id)?.name}" document type?`)) {
+  const deleteDocType = async (id: string) => {
+    if (await confirm(`Are you sure you want to delete the "${docTypes.find(d => d.id === id)?.name}" document type?`)) {
       setDocTypes(docTypes.filter(d => d.id !== id));
       const newFields = { ...docFields };
       delete newFields[id];
@@ -207,13 +230,13 @@ export const SettingsPage: React.FC = () => {
     }
   };
 
-  const addNewDocType = () => {
-    const name = prompt("Enter the name of the new document type:");
+  const addNewDocType = async () => {
+    const name = await prompt("Enter the name of the new document type:");
     if (name && name.trim()) {
       const id = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') + '-' + Date.now().toString().slice(-4);
-      const newDoc: DocType = { 
-        id, 
-        name: name.trim(), 
+      const newDoc: DocType = {
+        id,
+        name: name.trim(),
         enabled: true,
         refPrefix: 'REG',
         refSeparator: '-',
@@ -227,19 +250,19 @@ export const SettingsPage: React.FC = () => {
   };
 
   // -- Data Collection Methods --
-  const addCollection = () => {
-    const name = prompt("Enter new Data Collection name (e.g. Employee Ranks):");
+  const addCollection = async () => {
+    const name = await prompt("Enter new Data Collection name (e.g. Employee Ranks):");
     if (name && name.trim()) {
       if (dataCollections[name.trim()]) {
-        alert("Collection already exists.");
+        await alert("Collection already exists.");
         return;
       }
       setDataCollections({ ...dataCollections, [name.trim()]: [] });
     }
   };
 
-  const deleteCollection = (key: string) => {
-    if (confirm(`Delete the "${key}" collection and all its data?`)) {
+  const deleteCollection = async (key: string) => {
+    if (await confirm(`Delete the "${key}" collection and all its data?`)) {
       const updated = { ...dataCollections };
       delete updated[key];
       setDataCollections(updated);
@@ -247,8 +270,8 @@ export const SettingsPage: React.FC = () => {
     }
   };
 
-  const addCollectionItem = (key: string) => {
-    const item = prompt(`Add new item to "${key}":`);
+  const addCollectionItem = async (key: string) => {
+    const item = await prompt(`Add new item to "${key}":`);
     if (item && item.trim()) {
       setDataCollections({
         ...dataCollections,
@@ -263,8 +286,8 @@ export const SettingsPage: React.FC = () => {
     setDataCollections({ ...dataCollections, [key]: updated });
   };
 
-  const addUnitMaster = () => {
-    const unit = prompt("Enter new Unit name (e.g. Dozen, Kilos):");
+  const addUnitMaster = async () => {
+    const unit = await prompt("Enter new Unit name (e.g. Dozen, Kilos):");
     if (unit && !unitMaster.includes(unit)) {
       setUnitMaster([...unitMaster, unit]);
     }
@@ -283,7 +306,7 @@ export const SettingsPage: React.FC = () => {
     if (!newFieldName) return;
     const options = newFieldType === 'select' && !newFieldCollection ? newFieldOptions.split(',').map(o => o.trim()).filter(Boolean) : undefined;
     const collectionSource = newFieldType === 'select' && newFieldCollection ? newFieldCollection : undefined;
-    
+
     const newField: FormField = {
       id: Math.random().toString(36).substr(2, 9),
       label: newFieldName,
@@ -311,14 +334,14 @@ export const SettingsPage: React.FC = () => {
   const toggleFieldRequired = (fieldId: string) => {
     setDocFields({
       ...docFields,
-      [selectedDocId]: docFields[selectedDocId].map(f => 
+      [selectedDocId]: docFields[selectedDocId].map(f =>
         f.id === fieldId ? { ...f, required: !f.required } : f
       )
     });
   };
 
-  const addCategory = () => {
-    const name = prompt("Enter new asset category name:");
+  const addCategory = async () => {
+    const name = await prompt("Enter new asset category name:");
     if (name && !assetCategories.includes(name)) {
       setAssetCategories([...assetCategories, name]);
     }
@@ -328,17 +351,77 @@ export const SettingsPage: React.FC = () => {
     setAssetCategories(assetCategories.filter(c => c !== cat));
   };
 
-  const handleAddUser = () => {
-    if (newUser.name && newUser.email) {
-      setUsers([{ ...newUser, access: 'Never' }, ...users]);
+  const openAddUserModal = () => {
+    setEditingUserId(null);
+    setUserFormData({
+      name: '',
+      email: '',
+      role: 'Viewer Only',
+      gender: 'Male',
+      position: '',
+      password: ''
+    });
+    setIsAddUserModalOpen(true);
+  };
+
+  const openEditUserModal = (user: User) => {
+    setEditingUserId(user.id);
+    setUserFormData({
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      gender: user.gender,
+      position: user.position,
+      password: user.password || ''
+    });
+    setIsAddUserModalOpen(true);
+  };
+
+  const handleSaveUser = () => {
+    if (userFormData.name && userFormData.email) {
+      if (editingUserId) {
+        updateUser(editingUserId, userFormData);
+      } else {
+        addUser(userFormData);
+      }
       setIsAddUserModalOpen(false);
-      setNewUser({ name: '', email: '', role: 'Viewer Only' });
     }
   };
 
-  const removeUser = (email: string) => {
-    if (confirm("Are you sure you want to remove this user?")) {
-      setUsers(users.filter(u => u.email !== email));
+  const removeUser = async (user: User) => {
+    if (await confirm(`Are you sure you want to remove ${user.name}?`)) {
+      deleteUser(user.id);
+    }
+  };
+
+  const openAddRoleModal = () => {
+    setEditingRoleId(null);
+    setRoleFormData({
+      name: '',
+      permissions: [],
+      badgeColor: 'blue'
+    });
+    setIsRoleModalOpen(true);
+  };
+
+  const openEditRoleModal = (role: Role) => {
+    setEditingRoleId(role.id);
+    setRoleFormData({
+      name: role.name,
+      permissions: role.permissions,
+      badgeColor: role.badgeColor
+    });
+    setIsRoleModalOpen(true);
+  };
+
+  const handleSaveRole = () => {
+    if (roleFormData.name) {
+      if (editingRoleId) {
+        updateRole(editingRoleId, roleFormData);
+      } else {
+        addRole(roleFormData);
+      }
+      setIsRoleModalOpen(false);
     }
   };
 
@@ -357,6 +440,14 @@ export const SettingsPage: React.FC = () => {
       case 'checkbox': return <CheckSquare size={14} />;
       case 'email': return <Mail size={14} />;
       case 'tel': return <PhoneIcon size={14} />;
+      case 'textarea': return <AlignLeft size={14} />;
+      case 'multiselect': return <ListPlus size={14} />;
+      case 'url': return <LinkIcon size={14} />;
+      case 'datetime': return <CalendarRange size={14} />;
+      case 'time': return <Clock size={14} />;
+      case 'section': return <SeparatorHorizontal size={14} />;
+      case 'rating': return <Star size={14} />;
+      case 'color': return <Palette size={14} />;
       default: return <TypeIcon size={14} />;
     }
   };
@@ -380,13 +471,13 @@ export const SettingsPage: React.FC = () => {
             Provincial Office Global Settings
           </p>
         </div>
-        
+
         <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
-          <Tabs 
-            tabs={tabs} 
-            activeTab={activeTab} 
-            onTabChange={setActiveTab} 
-            className="border-b-0 mb-0" 
+          <Tabs
+            tabs={tabs}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            className="border-b-0 mb-0"
           />
           <div className="hidden sm:block h-8 w-px bg-zinc-200 dark:bg-zinc-800 mx-2 shrink-0" />
           <Button variant="blue" className="w-full sm:w-auto justify-center" onClick={handleSave}>
@@ -397,8 +488,8 @@ export const SettingsPage: React.FC = () => {
 
       {activeTab === 'record' && (
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-6">
-          <Card 
-            title="Registry & Records" 
+          <Card
+            title="Registry & Records"
             description="Manage document schemas, reference formats and data collections"
             action={
               <div className="flex items-center gap-1 p-1 bg-zinc-100 dark:bg-zinc-900 rounded-xl min-w-max overflow-x-auto scrollbar-hide">
@@ -438,23 +529,23 @@ export const SettingsPage: React.FC = () => {
                             </div>
                           </div>
                           <div className="flex items-center gap-1">
-                             <button onClick={() => toggleDocType(i)} className={`w-8 h-4 rounded-full flex items-center px-1 transition-colors ${doc.enabled ? 'bg-blue-600 justify-end' : 'bg-zinc-300 dark:bg-zinc-700 justify-start'}`}>
-                               <div className="w-2.5 h-2.5 bg-white rounded-full"></div>
-                             </button>
+                            <button onClick={() => toggleDocType(i)} className={`w-8 h-4 rounded-full flex items-center px-1 transition-colors ${doc.enabled ? 'bg-blue-600 justify-end' : 'bg-zinc-300 dark:bg-zinc-700 justify-start'}`}>
+                              <div className="w-2.5 h-2.5 bg-white rounded-full"></div>
+                            </button>
                           </div>
                         </div>
                         <div className="flex items-center justify-between pt-2 border-t border-zinc-100 dark:border-zinc-800/50">
-                           <div className="flex items-center gap-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
-                             <div className="flex items-center gap-1"><Fingerprint size={12} className="text-zinc-300" /> {doc.refPrefix}{doc.refSeparator}</div>
-                           </div>
-                           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              {doc.enabled && (
-                                <button onClick={() => openBuilder(doc.id)} title="Schema Builder" className="p-1.5 text-zinc-400 hover:text-blue-600 transition-colors"><Settings size={14} /></button>
-                              )}
-                              <button onClick={() => openRefModal(doc)} title="ID Generator Settings" className="p-1.5 text-zinc-400 hover:text-amber-500 transition-colors"><Fingerprint size={14} /></button>
-                              <button onClick={() => openRenameModal(doc)} title="Rename" className="p-1.5 text-zinc-400 hover:text-emerald-600 transition-colors"><Edit2 size={14} /></button>
-                              <button onClick={() => deleteDocType(doc.id)} title="Delete" className="p-1.5 text-zinc-400 hover:text-red-600 transition-colors"><Trash2 size={14} /></button>
-                           </div>
+                          <div className="flex items-center gap-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+                            <div className="flex items-center gap-1"><Fingerprint size={12} className="text-zinc-300" /> {doc.refPrefix}{doc.refSeparator}</div>
+                          </div>
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {doc.enabled && (
+                              <button onClick={() => openBuilder(doc.id)} title="Schema Builder" className="p-1.5 text-zinc-400 hover:text-blue-600 transition-colors"><Settings size={14} /></button>
+                            )}
+                            <button onClick={() => openRefModal(doc)} title="ID Generator Settings" className="p-1.5 text-zinc-400 hover:text-amber-500 transition-colors"><Fingerprint size={14} /></button>
+                            <button onClick={() => openRenameModal(doc)} title="Rename" className="p-1.5 text-zinc-400 hover:text-emerald-600 transition-colors"><Edit2 size={14} /></button>
+                            <button onClick={() => deleteDocType(doc.id)} title="Delete" className="p-1.5 text-zinc-400 hover:text-red-600 transition-colors"><Trash2 size={14} /></button>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -465,14 +556,14 @@ export const SettingsPage: React.FC = () => {
                   <div className="p-8 rounded-2xl bg-zinc-50 dark:bg-zinc-900/10 border-2 border-dashed border-zinc-200 dark:border-zinc-800">
                     <p className="text-xs text-zinc-500 font-medium mb-4 leading-relaxed">Reference IDs are automatically generated for every new record based on the provincial format. You can customize the prefix, separator and starting sequence for each document category.</p>
                     <div className="space-y-3">
-                       {docTypes.map(doc => (
-                         <div key={doc.id} className="flex items-center justify-between text-[11px] font-bold">
-                            <span className="text-zinc-400 uppercase tracking-tight">{doc.name}</span>
-                            <code className="px-2 py-0.5 bg-white dark:bg-black rounded border border-zinc-100 dark:border-zinc-800 text-blue-600">
-                              {doc.refPrefix}{doc.refSeparator}{String(doc.refStart).padStart(doc.refPadding, '0')}
-                            </code>
-                         </div>
-                       ))}
+                      {docTypes.map(doc => (
+                        <div key={doc.id} className="flex items-center justify-between text-[11px] font-bold">
+                          <span className="text-zinc-400 uppercase tracking-tight">{doc.name}</span>
+                          <code className="px-2 py-0.5 bg-white dark:bg-black rounded border border-zinc-100 dark:border-zinc-800 text-blue-600">
+                            {doc.refPrefix}{doc.refSeparator}{String(doc.refStart).padStart(doc.refPadding, '0')}
+                          </code>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -488,8 +579,8 @@ export const SettingsPage: React.FC = () => {
                   </div>
                   <div className="space-y-1">
                     {Object.keys(dataCollections).map(key => (
-                      <div 
-                        key={key} 
+                      <div
+                        key={key}
                         onClick={() => setSelectedCollection(key)}
                         className={`flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all border ${selectedCollection === key ? 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/30 text-blue-700 dark:text-blue-400' : 'bg-transparent border-transparent text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-900'}`}
                       >
@@ -520,15 +611,15 @@ export const SettingsPage: React.FC = () => {
                         {dataCollections[selectedCollection].map((item, idx) => (
                           <div key={idx} className="flex items-center justify-between p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800 group">
                             <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300 truncate">{item}</span>
-                            <button onClick={() => removeCollectionItem(selectedCollection, idx)} className="opacity-0 group-hover:opacity-100 p-1 text-zinc-400 hover:text-red-500 transition-all"><Trash2 size={12}/></button>
+                            <button onClick={() => removeCollectionItem(selectedCollection, idx)} className="opacity-0 group-hover:opacity-100 p-1 text-zinc-400 hover:text-red-500 transition-all"><Trash2 size={12} /></button>
                           </div>
                         ))}
                       </div>
                     </div>
                   ) : (
                     <div className="h-full flex flex-col items-center justify-center p-10 border-2 border-dashed border-zinc-100 dark:border-zinc-800 rounded-3xl bg-zinc-50/30 dark:bg-zinc-900/10">
-                       <LinkIcon size={32} className="text-zinc-200 dark:text-zinc-800 mb-4" />
-                       <p className="text-xs text-zinc-500 font-bold uppercase tracking-[0.1em]">Select a collection to manage its data</p>
+                      <LinkIcon size={32} className="text-zinc-200 dark:text-zinc-800 mb-4" />
+                      <p className="text-xs text-zinc-500 font-bold uppercase tracking-[0.1em]">Select a collection to manage its data</p>
                     </div>
                   )}
                 </div>
@@ -563,81 +654,81 @@ export const SettingsPage: React.FC = () => {
 
           {supplySubTab === 'ris' && (
             <Card title="Requisition & Issue Slip (RIS) Settings" description="Configure automatic numbering for provincial stock releases">
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">RIS Prefix</label>
-                        <input type="text" value={risConfig.prefix} onChange={e => setRisConfig({...risConfig, prefix: e.target.value.toUpperCase()})} className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2.5 text-sm outline-none font-bold" />
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Separator</label>
-                        <input type="text" value={risConfig.separator} onChange={e => setRisConfig({...risConfig, separator: e.target.value})} className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2.5 text-sm outline-none text-center font-bold" />
-                      </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">RIS Prefix</label>
+                      <input type="text" value={risConfig.prefix} onChange={e => setRisConfig({ ...risConfig, prefix: e.target.value.toUpperCase() })} className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2.5 text-sm outline-none font-bold" />
                     </div>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Padding</label>
-                        <input type="number" value={risConfig.padding} onChange={e => setRisConfig({...risConfig, padding: parseInt(e.target.value) || 0})} className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2.5 text-sm outline-none" />
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Increment</label>
-                        <input type="number" value={risConfig.increment} onChange={e => setRisConfig({...risConfig, increment: parseInt(e.target.value) || 1})} className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2.5 text-sm outline-none" />
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Start #</label>
-                        <input type="number" value={risConfig.startNumber} onChange={e => setRisConfig({...risConfig, startNumber: parseInt(e.target.value) || 1})} className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2.5 text-sm outline-none" />
-                      </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Separator</label>
+                      <input type="text" value={risConfig.separator} onChange={e => setRisConfig({ ...risConfig, separator: e.target.value })} className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2.5 text-sm outline-none text-center font-bold" />
                     </div>
                   </div>
-                  <div className="p-6 rounded-3xl bg-blue-50 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-500/20 flex flex-col justify-center">
-                    <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-2">Example Output</span>
-                    <p className="text-4xl font-mono font-black text-blue-700 dark:text-blue-300 tracking-tighter">
-                      {risConfig.prefix}{risConfig.separator}{String(risConfig.startNumber).padStart(risConfig.padding, '0')}
-                    </p>
-                    <p className="text-[10px] text-blue-600/60 font-medium mt-4 leading-relaxed">Generated RIS numbers are unique across the provincial database and recorded in the audit logs.</p>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Padding</label>
+                      <input type="number" value={risConfig.padding} onChange={e => setRisConfig({ ...risConfig, padding: parseInt(e.target.value) || 0 })} className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2.5 text-sm outline-none" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Increment</label>
+                      <input type="number" value={risConfig.increment} onChange={e => setRisConfig({ ...risConfig, increment: parseInt(e.target.value) || 1 })} className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2.5 text-sm outline-none" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Start #</label>
+                      <input type="number" value={risConfig.startNumber} onChange={e => setRisConfig({ ...risConfig, startNumber: parseInt(e.target.value) || 1 })} className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2.5 text-sm outline-none" />
+                    </div>
                   </div>
-               </div>
+                </div>
+                <div className="p-6 rounded-3xl bg-blue-50 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-500/20 flex flex-col justify-center">
+                  <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-2">Example Output</span>
+                  <p className="text-4xl font-mono font-black text-blue-700 dark:text-blue-300 tracking-tighter">
+                    {risConfig.prefix}{risConfig.separator}{String(risConfig.startNumber).padStart(risConfig.padding, '0')}
+                  </p>
+                  <p className="text-[10px] text-blue-600/60 font-medium mt-4 leading-relaxed">Generated RIS numbers are unique across the provincial database and recorded in the audit logs.</p>
+                </div>
+              </div>
             </Card>
           )}
 
           {supplySubTab === 'units' && (
             <Card title="Unit Master Directory" description="Manage valid units of measurement for inventory items">
-               <div className="space-y-6">
-                  <div className="flex flex-wrap gap-2">
-                    {unitMaster.map(unit => (
-                      <Badge key={unit} variant="info" className="!py-2 !px-4 flex items-center gap-2 group">
-                        {unit}
-                        <button onClick={() => removeUnitMaster(unit)} className="text-blue-400 hover:text-red-500 transition-colors">
-                          <Trash2 size={12} />
-                        </button>
-                      </Badge>
-                    ))}
-                    <button onClick={addUnitMaster} className="px-4 py-2 rounded-full border-2 border-dashed border-zinc-200 dark:border-zinc-800 text-[10px] font-black text-zinc-400 uppercase tracking-widest hover:border-blue-500 hover:text-blue-600 transition-all flex items-center gap-2">
-                      <Plus size={14} /> Add New Unit
-                    </button>
-                  </div>
-                  <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800 flex gap-3">
-                    <Info size={18} className="text-zinc-400 shrink-0" />
-                    <p className="text-[11px] text-zinc-500 leading-relaxed font-medium">Units defined here will appear as options when registering or editing items in the Supply Inventory tab.</p>
-                  </div>
-               </div>
+              <div className="space-y-6">
+                <div className="flex flex-wrap gap-2">
+                  {unitMaster.map(unit => (
+                    <Badge key={unit} variant="info" className="!py-2 !px-4 flex items-center gap-2 group">
+                      {unit}
+                      <button onClick={() => removeUnitMaster(unit)} className="text-blue-400 hover:text-red-500 transition-colors">
+                        <Trash2 size={12} />
+                      </button>
+                    </Badge>
+                  ))}
+                  <button onClick={addUnitMaster} className="px-4 py-2 rounded-full border-2 border-dashed border-zinc-200 dark:border-zinc-800 text-[10px] font-black text-zinc-400 uppercase tracking-widest hover:border-blue-500 hover:text-blue-600 transition-all flex items-center gap-2">
+                    <Plus size={14} /> Add New Unit
+                  </button>
+                </div>
+                <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800 flex gap-3">
+                  <Info size={18} className="text-zinc-400 shrink-0" />
+                  <p className="text-[11px] text-zinc-500 leading-relaxed font-medium">Units defined here will appear as options when registering or editing items in the Supply Inventory tab.</p>
+                </div>
+              </div>
             </Card>
           )}
 
           {supplySubTab === 'danger' && (
             <Card title="Danger Zone" description="Irreversible system-wide actions for provincial data management" className="!border-red-200 dark:!border-red-900/30">
-               <div className="space-y-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between p-6 rounded-3xl bg-red-50 dark:bg-red-500/5 border border-red-100 dark:border-red-500/20 gap-6">
-                     <div>
-                        <h4 className="text-sm font-black text-red-700 dark:text-red-400 uppercase tracking-tight">Purge All Inventory Data</h4>
-                        <p className="text-xs text-red-600/70 mt-1 leading-relaxed">Removes all stock items, quantity records, and pending requisition requests. Use only after testing phase or for full system reset.</p>
-                     </div>
-                     <Button variant="ghost" onClick={handlePurgeInventory} className="bg-red-600 text-white hover:bg-red-700 !px-8 h-12 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em]">
-                        Wipe Inventory
-                     </Button>
+              <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-6 rounded-3xl bg-red-50 dark:bg-red-500/5 border border-red-100 dark:border-red-500/20 gap-6">
+                  <div>
+                    <h4 className="text-sm font-black text-red-700 dark:text-red-400 uppercase tracking-tight">Purge All Inventory Data</h4>
+                    <p className="text-xs text-red-600/70 mt-1 leading-relaxed">Removes all stock items, quantity records, and pending requisition requests. Use only after testing phase or for full system reset.</p>
                   </div>
-               </div>
+                  <Button variant="ghost" onClick={handlePurgeInventory} className="bg-red-600 text-white hover:bg-red-700 !px-8 h-12 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em]">
+                    Wipe Inventory
+                  </Button>
+                </div>
+              </div>
             </Card>
           )}
         </div>
@@ -646,48 +737,48 @@ export const SettingsPage: React.FC = () => {
       {activeTab === 'property' && (
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-6">
           <Card title="Property & Asset Rules" description="Define asset categories and provincial depreciation methods">
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800">
-                  <h4 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-widest mb-3">Asset Categories</h4>
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {assetCategories.map(cat => (
-                      <Badge key={cat} variant="default" className="!py-1.5 !px-3 flex items-center gap-2 group">
-                        {cat}
-                        <button onClick={() => removeCategory(cat)} className="hover:text-red-500 transition-colors">
-                          <Trash2 size={10} />
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                  <button 
-                    onClick={addCategory}
-                    className="text-[10px] font-bold text-blue-600 uppercase tracking-widest hover:underline flex items-center gap-1"
-                  >
-                    <Plus size={12} /> Add Category
-                  </button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800">
+                <h4 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-widest mb-3">Asset Categories</h4>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {assetCategories.map(cat => (
+                    <Badge key={cat} variant="default" className="!py-1.5 !px-3 flex items-center gap-2 group">
+                      {cat}
+                      <button onClick={() => removeCategory(cat)} className="hover:text-red-500 transition-colors">
+                        <Trash2 size={10} />
+                      </button>
+                    </Badge>
+                  ))}
                 </div>
-                <div className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800">
-                  <h4 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-widest mb-3">Audit Schedule</h4>
-                  <p className="text-xs text-zinc-500 leading-relaxed mb-4">Set the frequency for physical asset inventory counts.</p>
-                  <select 
-                    value={auditSchedule}
-                    onChange={(e) => setAuditSchedule(e.target.value)}
-                    className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm outline-none"
-                  >
-                    <option>Quarterly (Every 3 months)</option>
-                    <option>Semi-Annual (Every 6 months)</option>
-                    <option>Annual (Every 12 months)</option>
-                  </select>
-                </div>
-             </div>
+                <button
+                  onClick={addCategory}
+                  className="text-[10px] font-bold text-blue-600 uppercase tracking-widest hover:underline flex items-center gap-1"
+                >
+                  <Plus size={12} /> Add Category
+                </button>
+              </div>
+              <div className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800">
+                <h4 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-widest mb-3">Audit Schedule</h4>
+                <p className="text-xs text-zinc-500 leading-relaxed mb-4">Set the frequency for physical asset inventory counts.</p>
+                <select
+                  value={auditSchedule}
+                  onChange={(e) => setAuditSchedule(e.target.value)}
+                  className="w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm outline-none"
+                >
+                  <option>Quarterly (Every 3 months)</option>
+                  <option>Semi-Annual (Every 6 months)</option>
+                  <option>Annual (Every 12 months)</option>
+                </select>
+              </div>
+            </div>
           </Card>
         </div>
       )}
 
       {activeTab === 'users' && (
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-6">
-          <Card 
-            title="Security & Access" 
+          <Card
+            title="Security & Access"
             description="Manage user roles, accounts, and system-wide permissions"
             action={
               <div className="flex items-center gap-1 p-1 bg-zinc-100 dark:bg-zinc-900 rounded-xl min-w-max">
@@ -709,13 +800,13 @@ export const SettingsPage: React.FC = () => {
             {usersSubTab === 'accounts' && (
               <div className="space-y-4 animate-in fade-in duration-300">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-2">
-                   <h4 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                     <Users size={14} className="text-blue-600" /> User Accounts
-                   </h4>
-                   <Button 
-                    variant="outline" 
+                  <h4 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
+                    <Users size={14} className="text-blue-600" /> User Accounts
+                  </h4>
+                  <Button
+                    variant="outline"
                     className="!py-1.5 !px-3 h-auto text-[10px] uppercase tracking-widest w-full sm:w-auto justify-center"
-                    onClick={() => setIsAddUserModalOpen(true)}
+                    onClick={openAddUserModal}
                   >
                     <UserPlus size={12} className="mr-2" /> New User
                   </Button>
@@ -731,22 +822,27 @@ export const SettingsPage: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-50 dark:divide-zinc-800/50">
-                      {users.map((user, idx) => (
-                        <tr key={user.email} className="group">
+                      {users.map((user) => (
+                        <tr key={user.email} className="group hover:bg-zinc-50 dark:hover:bg-zinc-900/40 transition-colors">
                           <td className="py-4 px-5 sm:px-0">
-                            <div className="flex flex-col">
-                              <span className="text-sm font-bold text-zinc-900 dark:text-white">{user.name}</span>
-                              <span className="text-[10px] text-zinc-500">{user.email}</span>
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-[10px] font-bold text-white uppercase">
+                                {user.name.split(' ').map(n => n[0]).join('')}
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-sm font-bold text-zinc-900 dark:text-white">{user.name}</span>
+                                <span className="text-[10px] text-zinc-500">{user.email}</span>
+                              </div>
                             </div>
                           </td>
                           <td className="py-4">
                             <Badge variant={user.role === 'Super Admin' ? 'info' : 'default'}>{user.role}</Badge>
                           </td>
-                          <td className="py-4 text-xs text-zinc-500 font-medium">{user.access}</td>
+                          <td className="py-4 text-xs text-zinc-500 font-medium">{user.lastAccess}</td>
                           <td className="py-4 text-right px-5 sm:px-0">
-                            <div className="flex justify-end gap-2">
-                              <Button variant="ghost" className="!p-2"><Key size={14}/></Button>
-                              <Button variant="ghost" className="!p-2" onClick={() => removeUser(user.email)}><Trash2 size={14} className="text-zinc-400 hover:text-red-500" /></Button>
+                            <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button variant="ghost" className="!p-2" onClick={() => openEditUserModal(user)}><Edit2 size={14} /></Button>
+                              <Button variant="ghost" className="!p-2" onClick={() => removeUser(user)}><Trash2 size={14} className="text-zinc-400 hover:text-red-500" /></Button>
                             </div>
                           </td>
                         </tr>
@@ -760,24 +856,31 @@ export const SettingsPage: React.FC = () => {
             {usersSubTab === 'roles' && (
               <div className="space-y-4 animate-in fade-in duration-300">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-2">
-                   <h4 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                     <ShieldCheck size={14} className="text-emerald-600" /> Roles & Permission Matrix
-                   </h4>
+                  <h4 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
+                    <ShieldCheck size={14} className="text-emerald-600" /> Roles & Permission Matrix
+                  </h4>
+                  <Button
+                    variant="outline"
+                    className="!py-1.5 !px-3 h-auto text-[10px] uppercase tracking-widest w-full sm:w-auto justify-center"
+                    onClick={openAddRoleModal}
+                  >
+                    <Plus size={12} className="mr-2" /> New Role
+                  </Button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {[
-                    { role: 'Super Admin', desc: 'Full access to all modules and global settings.', users: 1, color: 'emerald' },
-                    { role: 'Registry Editor', desc: 'Can create and modify civil registry records.', users: 4, color: 'blue' },
-                    { role: 'Inventory Lead', desc: 'Manage supply requests and inventory levels.', users: 2, color: 'amber' },
-                    { role: 'Viewer Only', desc: 'Read-only access to statistics and reports.', users: 3, color: 'zinc' },
-                  ].map((role, i) => (
-                    <div key={i} className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all cursor-pointer">
+                  {roles.map((role, i) => (
+                    <div key={i} className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all cursor-pointer group" onClick={() => openEditRoleModal(role)}>
                       <div className="flex justify-between items-start mb-3">
-                        <Badge variant={role.color === 'emerald' ? 'success' : role.color === 'blue' ? 'info' : role.color === 'amber' ? 'warning' : 'default'}>
-                          {role.role}
+                        <Badge className={`bg-${role.badgeColor}-50 text-${role.badgeColor}-700 dark:bg-${role.badgeColor}-500/10 dark:text-${role.badgeColor}-400 border border-${role.badgeColor}-100 dark:border-${role.badgeColor}-500/20`}>
+                          {role.name}
                         </Badge>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={(e) => { e.stopPropagation(); deleteRole(role.id); }} className="p-1 text-zinc-400 hover:text-red-500"><Trash2 size={12} /></button>
+                        </div>
                       </div>
-                      <p className="text-xs text-zinc-500 leading-relaxed mb-4">{role.desc}</p>
+                      <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-4">
+                        {role.permissions.length === 1 && role.permissions[0] === 'all' ? 'Administrative Access' : `${role.permissions.length} Custom Permissions`}
+                      </p>
                       <button className="text-[10px] font-bold text-zinc-400 hover:text-blue-600 uppercase tracking-widest flex items-center gap-1 transition-colors">
                         Edit Permissions <ChevronRight size={12} />
                       </button>
@@ -790,51 +893,182 @@ export const SettingsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Add User Modal */}
-      <Modal 
-        isOpen={isAddUserModalOpen} 
-        onClose={() => setIsAddUserModalOpen(false)} 
-        title="Register New Account"
+      {/* Add/Edit User Modal */}
+      <Modal
+        isOpen={isAddUserModalOpen}
+        onClose={() => setIsAddUserModalOpen(false)}
+        title={editingUserId ? "Edit User Account" : "Register New Account"}
         footer={
           <div className="flex gap-2">
             <Button variant="ghost" onClick={() => setIsAddUserModalOpen(false)}>Cancel</Button>
-            <Button variant="blue" onClick={handleAddUser}>Create User</Button>
+            <Button variant="blue" onClick={handleSaveUser}>{editingUserId ? "Update User" : "Create User"}</Button>
           </div>
         }
       >
         <div className="space-y-4">
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-zinc-500 uppercase">Full Name</label>
-            <input 
-              type="text" 
-              value={newUser.name}
-              onChange={e => setNewUser({...newUser, name: e.target.value})}
-              placeholder="e.g. Maria Clara" 
-              className="w-full p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 outline-none" 
+          <Input
+            label="Full Name"
+            value={userFormData.name}
+            onChange={e => setUserFormData({ ...userFormData, name: e.target.value })}
+            placeholder="e.g. Maria Clara"
+          />
+          <Input
+            label="Email Address"
+            type="email"
+            value={userFormData.email}
+            onChange={e => setUserFormData({ ...userFormData, email: e.target.value })}
+            placeholder="user@psa.gov.ph"
+          />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest ml-1">Gender</label>
+              <select
+                value={userFormData.gender}
+                onChange={e => setUserFormData({ ...userFormData, gender: e.target.value })}
+                className="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500/20"
+              >
+                <option>Male</option>
+                <option>Female</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <Input
+              label="Position"
+              value={userFormData.position}
+              onChange={e => setUserFormData({ ...userFormData, position: e.target.value })}
+              placeholder="e.g. Statistician"
             />
           </div>
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-zinc-500 uppercase">Email Address</label>
-            <input 
-              type="email" 
-              value={newUser.email}
-              onChange={e => setNewUser({...newUser, email: e.target.value})}
-              placeholder="user@psa.gov.ph" 
-              className="w-full p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 outline-none" 
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest ml-1">Assigned Role</label>
+              <select
+                value={userFormData.role}
+                onChange={e => setUserFormData({ ...userFormData, role: e.target.value })}
+                className="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500/20"
+              >
+                {roles.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
+              </select>
+            </div>
+            <Input
+              label="Password"
+              type="password"
+              value={userFormData.password}
+              onChange={e => setUserFormData({ ...userFormData, password: e.target.value })}
+              placeholder={editingUserId ? "Leave empty to keep" : "System Password"}
             />
           </div>
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-zinc-500 uppercase">Assigned Role</label>
-            <select 
-              value={newUser.role}
-              onChange={e => setNewUser({...newUser, role: e.target.value})}
-              className="w-full p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 outline-none"
-            >
-              <option>Super Admin</option>
-              <option>Registry Editor</option>
-              <option>Inventory Lead</option>
-              <option>Viewer Only</option>
-            </select>
+        </div>
+      </Modal>
+
+      {/* Role Editor Modal */}
+      <Modal
+        isOpen={isRoleModalOpen}
+        onClose={() => setIsRoleModalOpen(false)}
+        title={editingRoleId ? "Edit Role Permissions" : "Create New System Role"}
+        footer={
+          <div className="flex gap-2">
+            <Button variant="ghost" onClick={() => setIsRoleModalOpen(false)}>Cancel</Button>
+            <Button variant="blue" onClick={handleSaveRole}>{editingRoleId ? "Update Role" : "Create Role"}</Button>
+          </div>
+        }
+      >
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Role Name"
+              value={roleFormData.name}
+              onChange={e => setRoleFormData({ ...roleFormData, name: e.target.value })}
+              placeholder="e.g. Region Lead"
+            />
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest ml-1">Badge Color</label>
+              <select
+                value={roleFormData.badgeColor}
+                onChange={e => setRoleFormData({ ...roleFormData, badgeColor: e.target.value })}
+                className="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500/20 px-4 py-2.5"
+              >
+                <option value="slate">Slate</option>
+                <option value="gray">Gray</option>
+                <option value="zinc">Zinc</option>
+                <option value="neutral">Neutral</option>
+                <option value="stone">Stone</option>
+                <option value="red">Red</option>
+                <option value="orange">Orange</option>
+                <option value="amber">Amber</option>
+                <option value="yellow">Yellow</option>
+                <option value="lime">Lime</option>
+                <option value="green">Green</option>
+                <option value="emerald">Emerald</option>
+                <option value="teal">Teal</option>
+                <option value="cyan">Cyan</option>
+                <option value="sky">Sky</option>
+                <option value="blue">Blue</option>
+                <option value="indigo">Indigo</option>
+                <option value="violet">Violet</option>
+                <option value="purple">Purple</option>
+                <option value="fuchsia">Fuchsia</option>
+                <option value="pink">Pink</option>
+                <option value="rose">Rose</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="p-6 rounded-3xl bg-zinc-100/50 dark:bg-zinc-900/50 border border-dashed border-zinc-200 dark:border-zinc-800 flex flex-col items-center justify-center gap-4">
+            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Badge Preview</p>
+            <div className={`
+              px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest shadow-lg transition-all duration-300
+              bg-${roleFormData.badgeColor}-50 text-${roleFormData.badgeColor}-700 border border-${roleFormData.badgeColor}-100
+              dark:bg-${roleFormData.badgeColor}-500/10 dark:text-${roleFormData.badgeColor}-400 dark:border-${roleFormData.badgeColor}-500/20
+              scale-110
+            `}>
+              {roleFormData.name || 'New Role Badge'}
+            </div>
+            <p className="text-[9px] text-zinc-500 font-medium italic mt-2 text-center">
+              This is how the role will appear across the system (Header, Lists, Profile).
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Access Permissions</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {[
+                { id: 'records.view', label: 'View Records' },
+                { id: 'records.edit', label: 'Modify Records' },
+                { id: 'supply.view', label: 'View Inventory' },
+                { id: 'supply.edit', label: 'Manage Stock' },
+                { id: 'supply.approve', label: 'Approve Requests' },
+                { id: 'settings.global', label: 'System Settings' },
+              ].map(perm => (
+                <label key={perm.id} className="flex items-center gap-3 p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 cursor-pointer hover:border-blue-500 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={roleFormData.permissions.includes('all') || roleFormData.permissions.includes(perm.id)}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      if (checked) {
+                        setRoleFormData({ ...roleFormData, permissions: [...roleFormData.permissions, perm.id] });
+                      } else {
+                        setRoleFormData({ ...roleFormData, permissions: roleFormData.permissions.filter(p => p !== perm.id && p !== 'all') });
+                      }
+                    }}
+                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-tight">{perm.label}</span>
+                </label>
+              ))}
+              <label className="flex items-center gap-3 p-3 rounded-xl bg-blue-50 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-500/20 cursor-pointer sm:col-span-2">
+                <input
+                  type="checkbox"
+                  checked={roleFormData.permissions.includes('all')}
+                  onChange={(e) => {
+                    setRoleFormData({ ...roleFormData, permissions: e.target.checked ? ['all'] : [] });
+                  }}
+                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-xs font-black text-blue-600 uppercase tracking-[0.1em]">Administrative Access (Global Control)</span>
+              </label>
+            </div>
           </div>
         </div>
       </Modal>
@@ -856,51 +1090,51 @@ export const SettingsPage: React.FC = () => {
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Prefix Code</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={docForRef.refPrefix}
-                  onChange={e => setDocForRef({...docForRef, refPrefix: e.target.value.toUpperCase()})}
-                  className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2.5 text-sm outline-none" 
+                  onChange={e => setDocForRef({ ...docForRef, refPrefix: e.target.value.toUpperCase() })}
+                  className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2.5 text-sm outline-none"
                   placeholder="e.g. BC"
                 />
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Separator</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={docForRef.refSeparator}
-                  onChange={e => setDocForRef({...docForRef, refSeparator: e.target.value})}
-                  className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2.5 text-sm outline-none text-center" 
+                  onChange={e => setDocForRef({ ...docForRef, refSeparator: e.target.value })}
+                  className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2.5 text-sm outline-none text-center"
                   placeholder="e.g. -"
                 />
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Padding</label>
-                <input 
-                  type="number" 
+                <input
+                  type="number"
                   value={docForRef.refPadding}
-                  onChange={e => setDocForRef({...docForRef, refPadding: parseInt(e.target.value) || 0})}
-                  className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2.5 text-sm outline-none" 
+                  onChange={e => setDocForRef({ ...docForRef, refPadding: parseInt(e.target.value) || 0 })}
+                  className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2.5 text-sm outline-none"
                 />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Increment Value</label>
-                <input 
-                  type="number" 
+                <input
+                  type="number"
                   value={docForRef.refIncrement}
-                  onChange={e => setDocForRef({...docForRef, refIncrement: parseInt(e.target.value) || 1})}
-                  className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2.5 text-sm outline-none" 
+                  onChange={e => setDocForRef({ ...docForRef, refIncrement: parseInt(e.target.value) || 1 })}
+                  className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2.5 text-sm outline-none"
                 />
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Starting Number</label>
-                <input 
-                  type="number" 
+                <input
+                  type="number"
                   value={docForRef.refStart}
-                  onChange={e => setDocForRef({...docForRef, refStart: parseInt(e.target.value) || 1})}
-                  className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2.5 text-sm outline-none" 
+                  onChange={e => setDocForRef({ ...docForRef, refStart: parseInt(e.target.value) || 1 })}
+                  className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2.5 text-sm outline-none"
                 />
               </div>
             </div>
@@ -909,9 +1143,9 @@ export const SettingsPage: React.FC = () => {
       </Modal>
 
       {/* Rename Document Type Modal */}
-      <Modal 
-        isOpen={isRenameModalOpen} 
-        onClose={() => setIsRenameModalOpen(false)} 
+      <Modal
+        isOpen={isRenameModalOpen}
+        onClose={() => setIsRenameModalOpen(false)}
         title="Rename Document Type"
         footer={
           <div className="flex gap-2">
@@ -923,11 +1157,11 @@ export const SettingsPage: React.FC = () => {
         <div className="space-y-4">
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Display Name</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               value={renamedValue}
               onChange={e => setRenamedValue(e.target.value)}
-              className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all" 
+              className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"
               placeholder="e.g. Birth Certificate"
               autoFocus
             />
@@ -936,9 +1170,9 @@ export const SettingsPage: React.FC = () => {
       </Modal>
 
       {/* Dynamic Form Builder Modal */}
-      <Modal 
-        isOpen={isBuilderOpen} 
-        onClose={() => setIsBuilderOpen(false)} 
+      <Modal
+        isOpen={isBuilderOpen}
+        onClose={() => setIsBuilderOpen(false)}
         title={`Schema Designer: ${docTypes.find(d => d.id === selectedDocId)?.name}`}
         footer={
           <div className="flex gap-2">
@@ -948,96 +1182,104 @@ export const SettingsPage: React.FC = () => {
       >
         <div className="space-y-6">
           <div className="space-y-3">
-             <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Active Schema Elements</h4>
-             <div className="space-y-2">
-                {selectedDocId && docFields[selectedDocId] && docFields[selectedDocId].map((field) => (
-                  <div key={field.id} className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 group hover:border-zinc-300 dark:hover:border-zinc-700 transition-all">
-                    <div className="text-zinc-300 dark:text-zinc-600"><GripVertical size={16} /></div>
-                    <div className="flex-1 min-w-0">
-                       <div className="flex items-center gap-2">
-                         <p className="text-sm font-bold text-zinc-900 dark:text-white truncate">{field.label}</p>
-                         {field.collectionSource && <Badge variant="info" className="!text-[8px] h-4">Connected</Badge>}
-                       </div>
-                       <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold">
-                         {field.type} {field.collectionSource ? `(Source: ${field.collectionSource})` : (field.options && `• ${field.options.length} options`)}
-                       </p>
+            <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Active Schema Elements</h4>
+            <div className="space-y-2">
+              {selectedDocId && docFields[selectedDocId] && docFields[selectedDocId].map((field) => (
+                <div key={field.id} className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 group hover:border-zinc-300 dark:hover:border-zinc-700 transition-all">
+                  <div className="text-zinc-300 dark:text-zinc-600"><GripVertical size={16} /></div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-bold text-zinc-900 dark:text-white truncate">{field.label}</p>
+                      {field.collectionSource && <Badge variant="info" className="!text-[8px] h-4">Connected</Badge>}
                     </div>
-                    <div className="flex items-center gap-4">
-                       <div className="hidden sm:flex items-center gap-2">
-                         <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Req.</span>
-                         <button 
-                            onClick={() => toggleFieldRequired(field.id)}
-                            className={`w-7 h-4 rounded-full flex items-center px-0.5 transition-colors ${field.required ? 'bg-blue-600 justify-end' : 'bg-zinc-200 dark:bg-zinc-800 justify-start'}`}
-                          >
-                            <div className="w-2.5 h-2.5 bg-white rounded-full"></div>
-                          </button>
-                       </div>
-                       <button onClick={() => removeField(field.id)} className="p-1.5 text-zinc-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
-                         <Trash2 size={14} />
-                       </button>
-                    </div>
+                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold">
+                      {field.type} {field.collectionSource ? `(Source: ${field.collectionSource})` : (field.options && `• ${field.options.length} options`)}
+                    </p>
                   </div>
-                ))}
-             </div>
+                  <div className="flex items-center gap-4">
+                    <div className="hidden sm:flex items-center gap-2">
+                      <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Req.</span>
+                      <button
+                        onClick={() => toggleFieldRequired(field.id)}
+                        className={`w-7 h-4 rounded-full flex items-center px-0.5 transition-colors ${field.required ? 'bg-blue-600 justify-end' : 'bg-zinc-200 dark:bg-zinc-800 justify-start'}`}
+                      >
+                        <div className="w-2.5 h-2.5 bg-white rounded-full"></div>
+                      </button>
+                    </div>
+                    <button onClick={() => removeField(field.id)} className="p-1.5 text-zinc-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 space-y-4">
-             <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Add Form Element</h4>
-             <div className="flex flex-col sm:flex-row gap-3">
-                <input 
-                  type="text" 
-                  placeholder="Field Label" 
-                  value={newFieldName}
-                  onChange={e => setNewFieldName(e.target.value)}
-                  className="flex-1 px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 outline-none text-sm focus:ring-2 focus:ring-blue-500"
-                />
-                <select 
-                  value={newFieldType}
-                  onChange={e => setNewFieldType(e.target.value as any)}
-                  className="px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 outline-none text-sm min-w-[140px]"
-                >
-                  <option value="text">Short Text</option>
-                  <option value="number">Number</option>
-                  <option value="date">Date</option>
-                  <option value="select">Dropdown List</option>
-                  <option value="checkbox">Checkbox</option>
-                  <option value="email">Email</option>
-                  <option value="tel">Phone</option>
-                </select>
-             </div>
+            <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Add Form Element</h4>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <input
+                type="text"
+                placeholder="Field Label"
+                value={newFieldName}
+                onChange={e => setNewFieldName(e.target.value)}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 outline-none text-sm focus:ring-2 focus:ring-blue-500"
+              />
+              <select
+                value={newFieldType}
+                onChange={e => setNewFieldType(e.target.value as any)}
+                className="px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 outline-none text-sm min-w-[140px]"
+              >
+                <option value="text">Short Text</option>
+                <option value="number">Number</option>
+                <option value="date">Date</option>
+                <option value="select">Dropdown List</option>
+                <option value="checkbox">Checkbox</option>
+                <option value="email">Email</option>
+                <option value="tel">Phone</option>
+                <option value="textarea">Long Text (Textarea)</option>
+                <option value="multiselect">Multi-select</option>
+                <option value="url">URL Link</option>
+                <option value="datetime">Date & Time</option>
+                <option value="time">Time Picker</option>
+                <option value="section">Section Header</option>
+                <option value="rating">Rating/Stars</option>
+                <option value="color">Color Picker</option>
+              </select>
+            </div>
 
-             {newFieldType === 'select' && (
-               <div className="animate-in fade-in slide-in-from-top-1 duration-200 space-y-3">
-                 <div className="flex items-center gap-4 p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-                    <div className="flex-1">
-                      <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 block">Option Source</label>
-                      <select 
-                        value={newFieldCollection}
-                        onChange={e => setNewFieldCollection(e.target.value)}
-                        className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs outline-none"
-                      >
-                        <option value="">Manual Entry (Comma Separated)</option>
-                        {Object.keys(dataCollections).map(key => (
-                          <option key={key} value={key}>Data Collection: {key}</option>
-                        ))}
-                      </select>
-                    </div>
-                 </div>
-                 {!newFieldCollection && (
-                   <input 
-                     type="text" 
-                     placeholder="Item 1, Item 2, Item 3..." 
-                     value={newFieldOptions}
-                     onChange={e => setNewFieldOptions(e.target.value)}
-                     className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 outline-none text-sm"
-                   />
-                 )}
-               </div>
-             )}
+            {newFieldType === 'select' && (
+              <div className="animate-in fade-in slide-in-from-top-1 duration-200 space-y-3">
+                <div className="flex items-center gap-4 p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+                  <div className="flex-1">
+                    <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 block">Option Source</label>
+                    <select
+                      value={newFieldCollection}
+                      onChange={e => setNewFieldCollection(e.target.value)}
+                      className="w-full bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs outline-none"
+                    >
+                      <option value="">Manual Entry (Comma Separated)</option>
+                      {Object.keys(dataCollections).map(key => (
+                        <option key={key} value={key}>Data Collection: {key}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                {!newFieldCollection && (
+                  <input
+                    type="text"
+                    placeholder="Item 1, Item 2, Item 3..."
+                    value={newFieldOptions}
+                    onChange={e => setNewFieldOptions(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 outline-none text-sm"
+                  />
+                )}
+              </div>
+            )}
 
-             <Button variant="blue" className="w-full rounded-xl h-12 text-[10px] font-black uppercase tracking-[0.2em]" onClick={addField}>
-               <Plus size={16} className="mr-2" /> Add Field
-             </Button>
+            <Button variant="blue" className="w-full rounded-xl h-12 text-[10px] font-black uppercase tracking-[0.2em]" onClick={addField}>
+              <Plus size={16} className="mr-2" /> Add Field
+            </Button>
           </div>
         </div>
       </Modal>
