@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
+    <title>PSA Aurora Provincial Office Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'system-ui', 'sans-serif'],
+              mono: ['Fira Code', 'monospace'],
+            },
+            colors: {
+              psa: {
+                blue: '#0056b3',
+                yellow: '#ffc107',
+                navy: '#003366',
+              },
+              zinc: {
+                950: '#09090b',
+                900: '#18181b',
+                800: '#27272a',
+              }
+            },
+            animation: {
+              'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            },
+            screens: {
+              'xs': '475px',
+            }
+          },
+        },
+      };
+    </script>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap');
+      
+      :root {
+        scrollbar-gutter: stable;
+      }
+
+      body {
+        font-family: 'Inter', sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      
+      ::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #d4d4d8;
+        border-radius: 10px;
+      }
+      .dark ::-webkit-scrollbar-thumb {
+        background: #27272a;
+      }
+      
+      .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+      }
+
+      /* Safe area insets for mobile */
+      .pb-safe {
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+      
+      /* Smooth transitions for theme switching */
+      * {
+        transition-property: background-color, border-color, color, fill, stroke;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 150ms;
+      }
+    </style>
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@18.3.1",
+        "react/": "https://esm.sh/react@18.3.1/",
+        "react-dom": "https://esm.sh/react-dom@18.3.1",
+        "react-dom/": "https://esm.sh/react-dom@18.3.1/",
+        "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+        "lucide-react": "https://esm.sh/lucide-react@0.344.0?external=react,react-dom",
+        "react-router-dom": "https://esm.sh/react-router-dom@6.22.3?external=react,react-dom",
+        "recharts": "https://esm.sh/recharts@2.12.2?external=react,react-dom"
+      }
+    }
+    </script>
+  </head>
+  <body class="bg-[#fafafa] text-zinc-900 dark:bg-black dark:text-zinc-100 overflow-x-hidden">
+    <div id="root"></div>
+    <script type="module" src="./index.tsx"></script>
+  </body>
+</html>

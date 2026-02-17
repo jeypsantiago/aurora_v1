@@ -1,0 +1,5 @@
+{
+  "name": "PSA Provincial Dashboard",
+  "description": "A modern, responsive dashboard for the Philippine Statistics Authority Provincial Office, featuring data visualization, civil registration tracking, and dark/light mode support.",
+  "requestFramePermissions": []
+}
