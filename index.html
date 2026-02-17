@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -28,8 +29,12 @@
             },
             keyframes: {
               float: {
-                '0%, 100%': { transform: 'translateY(0)' },
-                '50%': { transform: 'translateY(-20px)' },
+                '0%, 100%': { transform: 'translateY(0) scale(1)' },
+                '50%': { transform: 'translateY(-30px) scale(1.05)' },
+              },
+              'float-reverse': {
+                '0%, 100%': { transform: 'translateY(0) scale(1.05)' },
+                '50%': { transform: 'translateY(30px) scale(1)' },
               },
               shimmer: {
                 '100%': { transform: 'translateX(100%)' },
@@ -40,8 +45,16 @@
                 '100%': { 'background-position': '0% 50%' },
               },
               reveal: {
-                '0%': { opacity: '0', transform: 'translateY(30px) scale(0.98)' },
+                '0%': { opacity: '0', transform: 'translateY(40px) scale(0.96)' },
                 '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+              },
+              'reveal-left': {
+                '0%': { opacity: '0', transform: 'translateX(-40px)' },
+                '100%': { opacity: '1', transform: 'translateX(0)' },
+              },
+              'reveal-right': {
+                '0%': { opacity: '0', transform: 'translateX(40px)' },
+                '100%': { opacity: '1', transform: 'translateX(0)' },
               },
               marquee: {
                 '0%': { transform: 'translateX(0)' },
@@ -49,13 +62,16 @@
               }
             },
             animation: {
-              'pulse-slow': 'pulse 6s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-              'float': 'float 8s ease-in-out infinite',
+              'pulse-slow': 'pulse 8s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'float': 'float 10s ease-in-out infinite',
+              'float-reverse': 'float-reverse 12s ease-in-out infinite',
               'shimmer': 'shimmer 2.5s infinite',
-              'bg-shift': 'background-shift 12s ease-in-out infinite',
-              'reveal': 'reveal 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+              'bg-shift': 'background-shift 15s ease-in-out infinite',
+              'reveal': 'reveal 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+              'reveal-left': 'reveal-left 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+              'reveal-right': 'reveal-right 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
               'marquee': 'marquee 40s linear infinite',
-              'spin-slow': 'spin 8s linear infinite',
+              'spin-slow': 'spin 12s linear infinite',
             },
             screens: {
               'xs': '475px',
@@ -75,6 +91,7 @@
         font-family: 'Inter', sans-serif;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
+        scroll-behavior: smooth;
       }
       
       ::-webkit-scrollbar {
@@ -97,36 +114,50 @@
       }
 
       .bg-grid {
-        background-size: 50px 50px;
-        background-image: radial-gradient(circle, #00000008 1.5px, transparent 1.5px);
+        background-size: 60px 60px;
+        background-image: radial-gradient(circle, #0000000a 1.5px, transparent 1.5px);
       }
       .dark .bg-grid {
-        background-image: radial-gradient(circle, #ffffff04 1.5px, transparent 1.5px);
+        background-image: radial-gradient(circle, #ffffff06 1.5px, transparent 1.5px);
       }
 
       .glass {
-        background: rgba(255, 255, 255, 0.8);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
       }
       .dark .glass {
-        background: rgba(0, 0, 0, 0.8);
+        background: rgba(0, 0, 0, 0.7);
       }
 
-      .stagger-1 { animation-delay: 100ms; }
-      .stagger-2 { animation-delay: 200ms; }
-      .stagger-3 { animation-delay: 350ms; }
-      .stagger-4 { animation-delay: 500ms; }
-      .stagger-5 { animation-delay: 650ms; }
+      .stagger-1 { animation-delay: 150ms; }
+      .stagger-2 { animation-delay: 300ms; }
+      .stagger-3 { animation-delay: 450ms; }
+      .stagger-4 { animation-delay: 600ms; }
+      .stagger-5 { animation-delay: 750ms; }
+      .stagger-6 { animation-delay: 900ms; }
+      .stagger-7 { animation-delay: 1050ms; }
 
       .pb-safe {
         padding-bottom: env(safe-area-inset-bottom);
       }
       
       * {
-        transition-property: background-color, border-color, color, fill, stroke, transform, opacity, box-shadow;
+        transition-property: background-color, border-color, color, fill, stroke, transform, opacity, box-shadow, backdrop-filter;
         transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
-        transition-duration: 400ms;
+        transition-duration: 500ms;
+      }
+      
+      .hover-lift:hover {
+        transform: translateY(-8px);
+      }
+
+      .mesh-glow {
+        filter: blur(100px);
+        opacity: 0.15;
+      }
+      .dark .mesh-glow {
+        opacity: 0.08;
       }
     </style>
     <script type="importmap">
@@ -144,7 +175,7 @@
     }
     </script>
   </head>
-  <body class="bg-[#fafafa] text-zinc-900 dark:bg-black dark:text-zinc-100 overflow-x-hidden">
+  <body class="bg-[#fafafa] text-zinc-900 dark:bg-[#020202] dark:text-zinc-100 overflow-x-hidden">
     <div id="root"></div>
     <script type="module" src="./index.tsx"></script>
   </body>
