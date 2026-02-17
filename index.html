@@ -26,8 +26,36 @@
                 800: '#27272a',
               }
             },
+            keyframes: {
+              float: {
+                '0%, 100%': { transform: 'translateY(0)' },
+                '50%': { transform: 'translateY(-20px)' },
+              },
+              shimmer: {
+                '100%': { transform: 'translateX(100%)' },
+              },
+              'background-shift': {
+                '0%': { 'background-position': '0% 50%' },
+                '50%': { 'background-position': '100% 50%' },
+                '100%': { 'background-position': '0% 50%' },
+              },
+              reveal: {
+                '0%': { opacity: '0', transform: 'translateY(30px) scale(0.98)' },
+                '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+              },
+              marquee: {
+                '0%': { transform: 'translateX(0)' },
+                '100%': { transform: 'translateX(-50%)' },
+              }
+            },
             animation: {
-              'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'pulse-slow': 'pulse 6s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'float': 'float 8s ease-in-out infinite',
+              'shimmer': 'shimmer 2.5s infinite',
+              'bg-shift': 'background-shift 12s ease-in-out infinite',
+              'reveal': 'reveal 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+              'marquee': 'marquee 40s linear infinite',
+              'spin-slow': 'spin 8s linear infinite',
             },
             screens: {
               'xs': '475px',
@@ -37,7 +65,7 @@
       };
     </script>
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Fira+Code:wght@400;500&display=swap');
       
       :root {
         scrollbar-gutter: stable;
@@ -50,8 +78,8 @@
       }
       
       ::-webkit-scrollbar {
-        width: 5px;
-        height: 5px;
+        width: 6px;
+        height: 6px;
       }
       ::-webkit-scrollbar-track {
         background: transparent;
@@ -61,23 +89,44 @@
         border-radius: 10px;
       }
       .dark ::-webkit-scrollbar-thumb {
-        background: #27272a;
+        background: #3f3f46;
       }
       
       .scrollbar-hide::-webkit-scrollbar {
         display: none;
       }
 
-      /* Safe area insets for mobile */
+      .bg-grid {
+        background-size: 50px 50px;
+        background-image: radial-gradient(circle, #00000008 1.5px, transparent 1.5px);
+      }
+      .dark .bg-grid {
+        background-image: radial-gradient(circle, #ffffff04 1.5px, transparent 1.5px);
+      }
+
+      .glass {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+      }
+      .dark .glass {
+        background: rgba(0, 0, 0, 0.8);
+      }
+
+      .stagger-1 { animation-delay: 100ms; }
+      .stagger-2 { animation-delay: 200ms; }
+      .stagger-3 { animation-delay: 350ms; }
+      .stagger-4 { animation-delay: 500ms; }
+      .stagger-5 { animation-delay: 650ms; }
+
       .pb-safe {
         padding-bottom: env(safe-area-inset-bottom);
       }
       
-      /* Smooth transitions for theme switching */
       * {
-        transition-property: background-color, border-color, color, fill, stroke;
-        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-        transition-duration: 150ms;
+        transition-property: background-color, border-color, color, fill, stroke, transform, opacity, box-shadow;
+        transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+        transition-duration: 400ms;
       }
     </style>
     <script type="importmap">

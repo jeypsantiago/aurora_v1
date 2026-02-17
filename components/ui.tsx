@@ -1,5 +1,5 @@
-import React from 'react';
-import { LucideIcon } from 'lucide-react';
+import React, { Fragment, useEffect } from 'react';
+import { LucideIcon, X } from 'lucide-react';
 
 interface CardProps {
   children: React.ReactNode;
@@ -13,12 +13,18 @@ export const Card: React.FC<CardProps> = ({ children, className = '', title, des
   return (
     <div className={`bg-white dark:bg-[#09090b] border border-zinc-200/80 dark:border-zinc-800/50 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 ${className}`}>
       {(title || description || action) && (
-        <div className="px-5 py-4 border-b border-zinc-100 dark:border-zinc-800/50 flex justify-between items-start gap-4">
-          <div className="min-w-0">
+        <div className="px-5 py-4 border-b border-zinc-100 dark:border-zinc-800/50 flex flex-col sm:flex-row sm:items-start gap-4">
+          <div className="min-w-0 flex-1">
             {title && <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight truncate">{title}</h3>}
             {description && <p className="text-[12px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-relaxed">{description}</p>}
           </div>
-          {action && <div className="shrink-0">{action}</div>}
+          {action && (
+            <div className="w-full sm:w-auto overflow-x-auto scrollbar-hide py-1 -my-1">
+              <div className="flex items-center gap-1.5 min-w-max pb-1 sm:pb-0">
+                {action}
+              </div>
+            </div>
+          )}
         </div>
       )}
       <div className="p-5">
@@ -125,6 +131,88 @@ export const ProgressBar: React.FC<{ value: number; max?: number; color?: string
           className={`h-full ${color} transition-all duration-500 ease-out rounded-full`}
           style={{ width: `${percentage}%` }}
         />
+      </div>
+    </div>
+  );
+};
+
+interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+  footer?: React.ReactNode;
+}
+
+export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, footer }) => {
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4 sm:p-6">
+      <div 
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+        onClick={onClose}
+      />
+      <div className="relative w-full max-w-lg bg-white dark:bg-zinc-950 rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100 dark:border-zinc-800">
+          <h3 className="text-lg font-bold text-zinc-900 dark:text-white uppercase tracking-tight">{title}</h3>
+          <button 
+            onClick={onClose}
+            className="p-2 text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 rounded-xl transition-all"
+          >
+            <X size={20} />
+          </button>
+        </div>
+        <div className="p-6 max-h-[70vh] overflow-y-auto scrollbar-hide">
+          {children}
+        </div>
+        {footer && (
+          <div className="px-6 py-5 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/20 flex justify-end gap-3">
+            {footer}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+interface TabsProps {
+  tabs: { id: string; label: string; icon?: LucideIcon }[];
+  activeTab: string;
+  onTabChange: (id: string) => void;
+  className?: string;
+}
+
+export const Tabs: React.FC<TabsProps> = ({ tabs, activeTab, onTabChange, className = '' }) => {
+  return (
+    <div className={`flex items-center border-b border-zinc-200 dark:border-zinc-800 overflow-x-auto scrollbar-hide w-full ${className}`}>
+      <div className="flex flex-nowrap min-w-max">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => onTabChange(tab.id)}
+            className={`
+              flex items-center gap-2 px-5 py-3.5 text-[11px] font-bold uppercase tracking-widest transition-all border-b-2 flex-shrink-0
+              ${activeTab === tab.id 
+                ? 'border-blue-600 text-blue-600 dark:text-blue-400' 
+                : 'border-transparent text-zinc-500 hover:text-zinc-900 dark:hover:text-white'}
+            `}
+          >
+            {tab.icon && <tab.icon size={16} />}
+            {tab.label}
+          </button>
+        ))}
       </div>
     </div>
   );

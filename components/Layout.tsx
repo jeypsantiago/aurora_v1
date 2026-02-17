@@ -17,7 +17,8 @@ import {
   Share2,
   Home,
   ShieldCheck,
-  Search
+  Search,
+  Package
 } from 'lucide-react';
 import { useTheme } from '../theme-context';
 import { Theme } from '../types';
@@ -51,10 +52,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const navItems = [
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { label: 'Civil Registry', href: '/civil-reg', icon: FileText },
-    { label: 'PhilSys ID', href: '/philsys', icon: Users },
-    { label: 'Statistics', href: '/statistics', icon: BarChart3 },
-    { label: 'Help Desk', href: '/docs', icon: HelpCircle },
+    { label: 'Record', href: '/civil-reg', icon: FileText },
+    { label: 'Supply', href: '/philsys', icon: Package },
+    { label: 'Property', href: '/statistics', icon: Building2 },
     { label: 'Settings', href: '/settings', icon: Settings },
   ];
 

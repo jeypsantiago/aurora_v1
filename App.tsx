@@ -4,6 +4,9 @@ import { ThemeProvider } from './theme-context';
 import { Layout } from './components/Layout';
 import { Dashboard } from './pages/Dashboard';
 import { LandingPage } from './pages/LandingPage';
+import { RecordPage } from './pages/RecordPage';
+import { SupplyPage } from './pages/SupplyPage';
+import { SettingsPage } from './pages/SettingsPage';
 
 // Placeholder components for other routes
 interface PlaceholderPageProps {
@@ -32,12 +35,11 @@ const App: React.FC = () => {
           
           {/* Protected Routes (Wrapped in Layout) */}
           <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
-          <Route path="/civil-reg" element={<Layout><PlaceholderPage title="Civil Registration System" /></Layout>} />
-          <Route path="/philsys" element={<Layout><PlaceholderPage title="PhilSys Management" /></Layout>} />
-          <Route path="/statistics" element={<Layout><PlaceholderPage title="Statistical Data" /></Layout>} />
+          <Route path="/civil-reg" element={<Layout><RecordPage /></Layout>} />
+          <Route path="/philsys" element={<Layout><SupplyPage /></Layout>} />
+          <Route path="/statistics" element={<Layout><PlaceholderPage title="Property & Assets" /></Layout>} />
           <Route path="/office" element={<Layout><PlaceholderPage title="Office Information" /></Layout>} />
-          <Route path="/settings" element={<Layout><PlaceholderPage title="System Settings" /></Layout>} />
-          <Route path="/docs" element={<Layout><PlaceholderPage title="Documentation" /></Layout>} />
+          <Route path="/settings" element={<Layout><SettingsPage /></Layout>} />
           
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
