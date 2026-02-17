@@ -79,7 +79,7 @@ export const Button: React.FC<ButtonProps> = ({
   className = '', 
   ...props 
 }) => {
-  const baseStyles = "inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-[13px] font-semibold transition-all focus:outline-none active:scale-95 disabled:opacity-50 disabled:pointer-events-none";
+  const baseStyles = "inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-[13px] font-semibold transition-all focus:outline-none active:scale-95 disabled:opacity-50 disabled:pointer-events-none whitespace-nowrap";
   
   const variants = {
     primary: "bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200 shadow-sm",
@@ -159,13 +159,13 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4 sm:p-6">
+    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 sm:p-6 overflow-hidden">
       <div 
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 bg-black/80 backdrop-blur-md transition-opacity duration-300"
         onClick={onClose}
       />
-      <div className="relative w-full max-w-lg bg-white dark:bg-zinc-950 rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100 dark:border-zinc-800">
+      <div className="relative w-full max-w-lg bg-white dark:bg-zinc-950 rounded-[32px] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 flex flex-col max-h-[90vh]">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100 dark:border-zinc-800 shrink-0">
           <h3 className="text-lg font-bold text-zinc-900 dark:text-white uppercase tracking-tight">{title}</h3>
           <button 
             onClick={onClose}
@@ -174,11 +174,11 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
             <X size={20} />
           </button>
         </div>
-        <div className="p-6 max-h-[70vh] overflow-y-auto scrollbar-hide">
+        <div className="p-6 overflow-y-auto scrollbar-hide flex-1">
           {children}
         </div>
         {footer && (
-          <div className="px-6 py-5 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/20 flex justify-end gap-3">
+          <div className="px-6 py-5 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/20 flex justify-end gap-3 shrink-0">
             {footer}
           </div>
         )}
