@@ -32,7 +32,8 @@ import {
   List,
   AlertCircle,
   Fingerprint,
-  ArrowDownToLine
+  ArrowDownToLine,
+  ChevronRight
 } from 'lucide-react';
 import { Card, Badge, Button, Tabs, ProgressBar, Modal, Input } from '../components/ui';
 import { useUsers } from '../UserContext';
@@ -63,91 +64,136 @@ interface SupplyRequest {
   receivedById?: string;
 }
 
-const RequestStatusTimeline = ({ status }: { status: RequestStatus }) => {
-  const steps: RequestStatus[] = ['For Verification', 'Awaiting Approval', 'For Issuance', 'To Receive', 'History'];
+const RequestStatusTimeline = ({ status, isWide = false }: { status: RequestStatus; isWide?: boolean }) => {
+  const steps: { label: RequestStatus; icon: any; color: string }[] = [
+    { label: 'For Verification', icon: FileCheck, color: 'blue' },
+    { label: 'Awaiting Approval', icon: Fingerprint, color: 'amber' },
+    { label: 'For Issuance', icon: Package, color: 'indigo' },
+    { label: 'To Receive', icon: ArrowDownToLine, color: 'emerald' },
+    { label: 'History', icon: CheckCircle2, color: 'zinc' }
+  ];
 
   const getCurrentStepIndex = () => {
     if (status === 'Rejected') return -1;
-    return steps.indexOf(status);
+    return steps.findIndex(s => s.label === status);
   };
 
   const currentStepIndex = getCurrentStepIndex();
 
   if (status === 'Rejected') {
     return (
-      <div className="flex items-center gap-2 p-2 bg-red-50 dark:bg-red-900/20 text-red-600 rounded-xl border border-red-100 dark:border-red-800">
-        <XCircle size={16} />
-        <span className="text-[10px] font-black uppercase tracking-widest">Request Rejected</span>
+      <div className="flex items-center gap-2 p-1.5 bg-red-50 dark:bg-red-900/20 text-red-600 rounded-lg border border-red-100 dark:border-red-800">
+        <XCircle size={14} />
+        <span className="text-[9px] font-black uppercase tracking-widest">Request Rejected</span>
       </div>
     );
   }
 
+  const getColorClass = (color: string, type: 'bg' | 'text' | 'border' | 'shadow') => {
+    const classes: any = {
+      blue: { bg: 'bg-blue-500', text: 'text-blue-500', border: 'border-blue-500', shadow: 'shadow-blue-500/20' },
+      amber: { bg: 'bg-amber-500', text: 'text-amber-500', border: 'border-amber-500', shadow: 'shadow-amber-500/20' },
+      indigo: { bg: 'bg-indigo-500', text: 'text-indigo-500', border: 'border-indigo-500', shadow: 'shadow-indigo-500/20' },
+      emerald: { bg: 'bg-emerald-500', text: 'text-emerald-500', border: 'border-emerald-500', shadow: 'shadow-emerald-500/20' },
+      zinc: { bg: 'bg-zinc-500', text: 'text-zinc-500', border: 'border-zinc-500', shadow: 'shadow-zinc-500/20' }
+    };
+    return classes[color]?.[type] || '';
+  };
+
   return (
-    <div className="w-full">
-      <div className="flex items-center justify-between relative">
-        {/* Connection Line Background */}
-        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-0.5 bg-zinc-100 dark:bg-zinc-800 -z-10" />
-
-        {/* Active Line Progress */}
-        <div
-          className="absolute left-0 top-1/2 -translate-y-1/2 h-0.5 bg-blue-500 transition-all duration-500 -z-10"
-          style={{ width: `${(currentStepIndex / (steps.length - 1)) * 100}%` }}
-        />
-
+    <div className={`flex items-center ${isWide ? 'w-full' : ''}`}>
+      <div className={`flex items-center ${isWide ? 'justify-between w-full' : 'justify-start gap-2.5'} relative`}>
         {steps.map((step, index) => {
           const isCompleted = index < currentStepIndex;
           const isActive = index === currentStepIndex;
           const isPending = index > currentStepIndex;
+          const isLast = index === steps.length - 1;
+          const StepIcon = step.icon;
 
           return (
-            <div key={step} className="flex flex-col items-center gap-2 relative group">
-              <div
-                className={`
-                  w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all duration-300 z-10
-                  ${isCompleted ? 'bg-blue-500 border-blue-500 text-white scale-100' : ''}
-                  ${isActive ? 'bg-white dark:bg-zinc-900 border-blue-500 text-blue-500 scale-125 shadow-lg shadow-blue-500/20' : ''}
-                  ${isPending ? 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-transparent scale-90' : ''}
-                `}
-              >
-                {isCompleted && <Check size={12} strokeWidth={4} />}
-                {isActive && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />}
+            <React.Fragment key={step.label}>
+              <div className={`flex flex-col items-center relative group ${isWide ? 'flex-1' : ''}`}>
+                <div
+                  className={`
+                    w-6 h-6 rounded-full flex items-center justify-center border transition-all duration-500 z-10 relative
+                    ${isCompleted ? `${getColorClass(step.color, 'bg')} border-transparent text-white scale-90 shadow-sm` : ''}
+                    ${isActive ? `bg-white dark:bg-zinc-950 ${getColorClass(step.color, 'border')} ${getColorClass(step.color, 'text')} scale-110 shadow-lg ${getColorClass(step.color, 'shadow')}` : ''}
+                    ${isPending ? 'bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-400 dark:text-zinc-600 scale-75' : ''}
+                  `}
+                >
+                  {isCompleted ? (
+                    <Check size={12} strokeWidth={4} />
+                  ) : (
+                    <div className="relative flex items-center justify-center">
+                      <StepIcon size={12} strokeWidth={isActive ? 3 : 2} className={isActive ? 'animate-in zoom-in duration-300' : ''} />
+                      {isActive && <div className={`absolute -inset-1 animate-ping rounded-full ${getColorClass(step.color, 'bg')} opacity-20`} />}
+                    </div>
+                  )}
+
+                  {isActive && (
+                    <Plus size={8} strokeWidth={5} className="absolute -top-1 -right-1 bg-white dark:bg-zinc-900 rounded-full text-blue-600 shadow-sm animate-pulse" />
+                  )}
+                </div>
+
+                {isActive && !isWide && (
+                  <span className={`text-[10px] font-black uppercase tracking-tighter ${getColorClass(step.color, 'text')} animate-in fade-in slide-in-from-left-2 duration-500 ml-1`}>
+                    {step.label.replace('For ', '').replace('Awaiting ', '').replace('To ', '')}
+                  </span>
+                )}
+
+                <div className={`
+                  ${isWide ? 'mt-2 static' : 'hidden'}
+                  ${(isActive || isWide) ? 'block' : 'hidden'}
+                  text-[8px] font-black uppercase tracking-[0.05em] whitespace-nowrap transition-all duration-500
+                  ${isActive ? `${getColorClass(step.color, 'text')} opacity-100 scale-110 drop-shadow-sm` : 'text-black dark:text-zinc-400 opacity-60'}
+                `}>
+                  {step.label.replace('For ', '').replace('Awaiting ', '').replace('To ', '')}
+                </div>
               </div>
 
-              <div className={`
-                absolute top-8 text-[8px] font-black uppercase tracking-wider whitespace-nowrap transition-all duration-300
-                ${isActive ? 'text-blue-600 dark:text-blue-400 opacity-100 transform translate-y-0' : 'text-zinc-400 opacity-0 group-hover:opacity-100 transform -translate-y-1 group-hover:translate-y-0'}
-              `}>
-                {step}
-              </div>
-            </div>
+              {!isLast && (
+                <div className={`flex items-center ${isWide ? 'flex-auto justify-center' : ''} ${index < currentStepIndex ? 'text-blue-500' : index === currentStepIndex ? 'text-blue-400' : 'text-zinc-400 dark:text-zinc-600'}`}>
+                  <ChevronRight
+                    size={isWide ? 14 : 10}
+                    strokeWidth={4}
+                    className={`${index === currentStepIndex ? 'animate-pulse' : ''} ${index < currentStepIndex ? 'opacity-100' : 'opacity-60'}`}
+                  />
+                </div>
+              )}
+            </React.Fragment>
           );
         })}
       </div>
-      <div className="h-6" /> {/* Spacing for labels */}
     </div>
   );
 };
 
 // Compact Badge for Table View
 const RequestBadge = ({ status }: { status: RequestStatus }) => {
-  const getStatusColor = (s: RequestStatus) => {
+  const getStatusConfig = (s: RequestStatus) => {
     switch (s) {
-      case 'For Verification': return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800';
-      case 'Awaiting Approval': return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800';
-      case 'For Issuance': return 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800';
-      case 'To Receive': return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800';
-      case 'History': return 'bg-zinc-100 text-zinc-700 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700';
-      case 'Rejected': return 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800';
-      default: return 'bg-zinc-100 text-zinc-700 border-zinc-200';
+      case 'For Verification': return { color: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800', icon: FileCheck };
+      case 'Awaiting Approval': return { color: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800', icon: Fingerprint };
+      case 'For Issuance': return { color: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800', icon: Package };
+      case 'To Receive': return { color: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800', icon: ArrowDownToLine };
+      case 'History': return { color: 'bg-zinc-100 text-zinc-700 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700', icon: CheckCircle2 };
+      case 'Rejected': return { color: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800', icon: XCircle };
+      default: return { color: 'bg-zinc-100 text-zinc-700 border-zinc-200', icon: Info };
     }
   };
 
+  const config = getStatusConfig(status);
+  const Icon = config.icon;
+
   return (
-    <span className={`text-[9px] uppercase font-black tracking-wider px-2 py-0.5 rounded-lg border ${getStatusColor(status)}`}>
+    <span className={`flex items-center gap-1.5 text-[8px] uppercase font-black tracking-widest px-2 py-0.5 rounded-lg border ${config.color} shadow-sm transition-all hover:scale-105`}>
+      <Icon size={10} strokeWidth={isActiveStatus(status) ? 3 : 2} className={isActiveStatus(status) ? 'animate-pulse' : ''} />
       {status}
     </span>
   );
 };
+
+const isActiveStatus = (s: RequestStatus) => s !== 'History' && s !== 'Rejected';
 
 export const SupplyPage: React.FC = () => {
   const { currentUser, users } = useUsers(); // Get currentUser and users list
@@ -344,7 +390,9 @@ export const SupplyPage: React.FC = () => {
     } : r));
   };
 
-  // ... (handleReject and other handlers remain the same)
+  const handleReject = (reqId: string) => {
+    setRequests(prev => prev.map(r => r.id === reqId ? { ...r, status: 'Rejected' } : r));
+  };
 
   const handleSaveItem = () => {
     if (!itemFormData.name || !itemFormData.unit) return;
@@ -404,11 +452,11 @@ export const SupplyPage: React.FC = () => {
 
   const approvalTabs: { id: RequestStatus; icon: any }[] = [
     { id: 'For Verification', icon: FileCheck },
-    { id: 'Awaiting Approval', icon: Clock },
-    { id: 'For Issuance', icon: Truck },
-    { id: 'To Receive', icon: PackageCheck },
+    { id: 'Awaiting Approval', icon: Fingerprint },
+    { id: 'For Issuance', icon: Package },
+    { id: 'To Receive', icon: ArrowDownToLine },
     { id: 'Rejected', icon: XCircle },
-    { id: 'History', icon: HistoryIcon },
+    { id: 'History', icon: CheckCircle2 },
   ];
 
   const lowStockItems = inventory.filter(item => item.physicalQty <= item.reorderPoint);
@@ -617,23 +665,27 @@ export const SupplyPage: React.FC = () => {
               {requests.filter(r => r.requesterId === currentUser?.id).length > 0 ? (
                 requests.filter(r => r.requesterId === currentUser?.id).map(req => (
                   <div key={req.id} className="p-4 rounded-3xl bg-white dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-blue-600 border border-zinc-200 dark:border-zinc-700">
-                          <Package size={16} />
+                    <div className="flex-1 flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-zinc-50 dark:bg-zinc-900/80 flex items-center justify-center text-blue-600 border border-zinc-200/50 dark:border-zinc-800 shrink-0 shadow-sm">
+                        <Package size={20} />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-4">
+                          <button
+                            onClick={() => openDetailModal(req)}
+                            className="text-sm font-black text-blue-600 hover:text-blue-700 hover:underline leading-none uppercase tracking-tight text-left transition-colors"
+                          >
+                            {req.id}
+                          </button>
+                          <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-800 mx-1" />
+                          <RequestStatusTimeline status={req.status} />
                         </div>
-                        <div>
-                          <p className="text-xs font-black text-zinc-900 dark:text-white leading-none">{req.id}</p>
-                          <div className="flex items-center gap-2 mt-1.5 w-full">
-                            <p className="text-[9px] text-zinc-400 font-bold uppercase tracking-widest shrink-0">{req.date}</p>
-                            <span className="w-1 h-1 rounded-full bg-zinc-300 shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <RequestStatusTimeline status={req.status} />
-                            </div>
-                          </div>
+                        <div className="flex items-center gap-2 mt-2">
+                          <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">{req.date} • {req.items.length} items</p>
+                          <span className="w-1 h-1 rounded-full bg-zinc-300 dark:bg-zinc-800" />
+                          <p className="text-[11px] text-black dark:text-white font-bold italic truncate max-w-[300px]">"{req.purpose}"</p>
                         </div>
                       </div>
-                      <p className="text-[10px] text-zinc-500 italic truncate max-w-sm">"{req.purpose}"</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button variant="ghost" className="h-9 px-4 text-[9px] uppercase font-black tracking-widest" onClick={() => openDetailModal(req)}>
@@ -650,7 +702,6 @@ export const SupplyPage: React.FC = () => {
                         </Button>
                       )}
                     </div>
-
                   </div>
                 ))
               ) : (
@@ -691,22 +742,27 @@ export const SupplyPage: React.FC = () => {
               {requests.filter(r => r.status === activeApprovalTab).length > 0 ? (
                 requests.filter(r => r.status === activeApprovalTab).map((req) => (
                   <div key={req.id} className="p-4 rounded-3xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group hover:border-zinc-300 dark:hover:border-zinc-700 transition-all">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 flex items-center justify-center text-blue-600 shadow-sm">
-                          <ClipboardList size={18} />
+                    <div className="flex-1 flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 flex items-center justify-center text-blue-600 shadow-sm shrink-0">
+                        <ClipboardList size={20} />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-4">
+                          <button
+                            onClick={() => openDetailModal(req)}
+                            className="text-sm font-black text-blue-600 hover:text-blue-700 hover:underline uppercase tracking-tight text-left transition-colors"
+                          >
+                            {req.id}
+                          </button>
+                          <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-800 mx-1" />
+                          <RequestStatusTimeline status={req.status} />
                         </div>
-                        <div>
-                          <div className="flex items-center gap-3">
-                            <p className="text-xs font-black text-zinc-900 dark:text-white uppercase tracking-tight shrink-0">{req.id}</p>
-                            <div className="flex-1 min-w-0">
-                              <RequestStatusTimeline status={req.status} />
-                            </div>
-                          </div>
-                          <p className="text-[9px] text-zinc-400 font-bold uppercase tracking-widest mt-0.5">{req.requester} • {req.date}</p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">{req.requester} • {req.date}</p>
+                          <span className="w-1 h-1 rounded-full bg-zinc-300 dark:bg-zinc-800" />
+                          <p className="text-[11px] text-black dark:text-white font-bold italic truncate max-w-[400px]">"{req.purpose}"</p>
                         </div>
                       </div>
-                      <p className="text-[10px] text-zinc-500 font-medium italic truncate max-w-md">"{req.purpose}"</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button variant="ghost" className="h-9 px-4 text-[9px] uppercase font-black tracking-widest" onClick={() => openDetailModal(req)}>
@@ -908,8 +964,8 @@ export const SupplyPage: React.FC = () => {
       >
         <div className="space-y-6">
           {/* Timeline Section */}
-          <div className="p-6 pb-2">
-            <RequestStatusTimeline status={selectedRequest?.status || 'For Verification'} />
+          <div className="px-6 py-4 bg-zinc-50/50 dark:bg-zinc-900/30 rounded-3xl border border-zinc-100 dark:border-zinc-800/50 mx-4">
+            <RequestStatusTimeline status={selectedRequest?.status || 'For Verification'} isWide={true} />
           </div>
 
           <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800">
@@ -929,9 +985,9 @@ export const SupplyPage: React.FC = () => {
                   <tr className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em] border-b border-zinc-100 dark:border-zinc-800/50">
                     <th className="pb-3 pr-4">Item (Unit)</th>
                     <th className="pb-3 text-center">Qty</th>
-                    <th className="pb-3 text-right">Phys.</th>
-                    <th className="pb-3 text-right">Avail.</th>
-                    <th className="pb-3 text-right">Pend.</th>
+                    <th className="pb-3 text-center">Phys.</th>
+                    <th className="pb-3 text-center">Avail.</th>
+                    <th className="pb-3 text-center">Pend.</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-50 dark:divide-zinc-800/30">
@@ -953,9 +1009,9 @@ export const SupplyPage: React.FC = () => {
                             <button onClick={() => updateSelectedRequestQty(reqItem.id, 1)} className="w-5 h-5 rounded-md bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-zinc-400"><Plus size={10} /></button>
                           </div>
                         </td>
-                        <td className="py-3 text-[11px] font-bold text-zinc-600 text-right">{inv.physicalQty}</td>
-                        <td className="py-3 text-[11px] font-black text-blue-600 text-right">{inv.physicalQty - inv.pendingQty}</td>
-                        <td className="py-3 text-[11px] font-bold text-amber-500 text-right">{inv.pendingQty}</td>
+                        <td className="py-3 text-[11px] font-bold text-zinc-600 text-center">{inv.physicalQty}</td>
+                        <td className="py-3 text-[11px] font-black text-blue-600 text-center">{inv.physicalQty - inv.pendingQty}</td>
+                        <td className="py-3 text-[11px] font-bold text-amber-500 text-center">{inv.pendingQty}</td>
                       </tr>
                     );
                   })}
