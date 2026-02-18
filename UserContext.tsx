@@ -17,6 +17,7 @@ export interface User {
     password?: string;
     lastAccess: string;
     avatar?: string;
+    signature?: string; // Base64 image string
 }
 
 interface UserContextType {
@@ -39,9 +40,9 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [users, setUsers] = useState<User[]>(() => {
         const saved = localStorage.getItem('aurora_users');
         return saved ? JSON.parse(saved) : [
-            { id: '1', name: 'Admin One', email: 'admin.aurora@psa.gov.ph', role: 'Super Admin', gender: 'Female', position: 'Provincial Admin', lastAccess: 'Just now' },
-            { id: '2', name: 'Reg Clerk', email: 'clerk.aurora@psa.gov.ph', role: 'Registry Editor', gender: 'Male', position: 'Registration Clerk', lastAccess: '2h ago' },
-            { id: '3', name: 'Supply Mgr', email: 'supply.aurora@psa.gov.ph', role: 'Inventory Lead', gender: 'Female', position: 'Supply Officer', lastAccess: 'Yesterday' },
+            { id: '1', name: 'Admin One', email: 'admin.aurora@psa.gov.ph', role: 'Super Admin', gender: 'Female', position: 'Provincial Admin', lastAccess: 'Just now', signature: '' },
+            { id: '2', name: 'Reg Clerk', email: 'clerk.aurora@psa.gov.ph', role: 'Registry Editor', gender: 'Male', position: 'Registration Clerk', lastAccess: '2h ago', signature: '' },
+            { id: '3', name: 'Supply Mgr', email: 'supply.aurora@psa.gov.ph', role: 'Inventory Lead', gender: 'Female', position: 'Supply Officer', lastAccess: 'Yesterday', signature: '' },
         ];
     });
 

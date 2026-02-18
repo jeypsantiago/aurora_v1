@@ -75,8 +75,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     { label: 'Record', href: '/civil-reg', icon: FileText },
     { label: 'Supply', href: '/philsys', icon: Package },
     { label: 'Property', href: '/statistics', icon: Building2 },
+    { label: 'Gmail Hub', href: '/gmail', icon: Mail },
     { label: 'Settings', href: '/settings', icon: Settings },
   ];
+
 
   const handleLogout = () => {
     navigate('/');

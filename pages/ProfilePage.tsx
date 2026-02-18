@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     User as UserIcon,
     Mail,
@@ -10,7 +10,9 @@ import {
     Save,
     Lock,
     ChevronRight,
-    Info
+    Info,
+    Upload,
+    Trash2
 } from 'lucide-react';
 import { useUsers } from '../UserContext';
 import { useDialog } from '../DialogContext';
@@ -26,6 +28,121 @@ export const ProfilePage: React.FC = () => {
         position: '',
         password: ''
     });
+
+    // -- Signature Drawing Logic --
+    const [signatureMode, setSignatureMode] = useState<'upload' | 'draw'>('upload');
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [isDrawing, setIsDrawing] = useState(false);
+
+    // Initialize/Reset canvas when switching to draw mode
+    useEffect(() => {
+        if (signatureMode === 'draw' && canvasRef.current) {
+            const canvas = canvasRef.current;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                // Set canvas size to match display size for sharpness
+                const rect = canvas.getBoundingClientRect();
+                canvas.width = rect.width;
+                canvas.height = rect.height;
+
+                ctx.lineWidth = 3;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.strokeStyle = '#000000';
+            }
+        }
+    }, [signatureMode]);
+
+    // Track points for smooth curves
+    const points = useRef<{ x: number; y: number }[]>([]);
+
+    const getPoint = (e: React.MouseEvent | React.TouchEvent, canvas: HTMLCanvasElement) => {
+        const rect = canvas.getBoundingClientRect();
+        const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+        const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+        return {
+            x: clientX - rect.left,
+            y: clientY - rect.top
+        };
+    };
+
+    const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
+        setIsDrawing(true);
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        const point = getPoint(e, canvas);
+        points.current = [point];
+
+        ctx.beginPath();
+        ctx.moveTo(point.x, point.y);
+        // Draw a single dot
+        ctx.lineTo(point.x, point.y);
+        ctx.stroke();
+    };
+
+    const draw = (e: React.MouseEvent | React.TouchEvent) => {
+        if (!isDrawing) return;
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        const currentPoint = getPoint(e, canvas);
+        points.current.push(currentPoint);
+
+        // We need at least 3 points to draw a curve from mid to mid
+        if (points.current.length < 3) {
+            const b = points.current[points.current.length - 1];
+            const a = points.current[points.current.length - 2];
+            ctx.beginPath();
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(b.x, b.y);
+            ctx.stroke();
+            return;
+        }
+
+        const p1 = points.current[points.current.length - 3];
+        const p2 = points.current[points.current.length - 2];
+        const p3 = points.current[points.current.length - 1];
+
+        // Midpoints
+        const mid1 = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+        const mid2 = { x: (p2.x + p3.x) / 2, y: (p2.y + p3.y) / 2 };
+
+        ctx.beginPath();
+        ctx.moveTo(mid1.x, mid1.y);
+        ctx.quadraticCurveTo(p2.x, p2.y, mid2.x, mid2.y);
+        ctx.stroke();
+    };
+
+    const stopDrawing = () => {
+        setIsDrawing(false);
+        points.current = []; // Clear points for next stroke
+    };
+
+    const clearSignature = () => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+    };
+
+    const saveDrawnSignature = () => {
+        const canvas = canvasRef.current;
+        if (!canvas || !currentUser) return;
+
+        // Convert canvas to data URL
+        const dataUrl = canvas.toDataURL('image/png');
+        updateUser(currentUser.id, { signature: dataUrl });
+        alert("Signature saved successfully!");
+        // Optional: Switch back to upload mode to show result? 
+        // Or keep in draw mode. User choice.
+    };
 
     useEffect(() => {
         if (currentUser) {
@@ -157,15 +274,103 @@ export const ProfilePage: React.FC = () => {
                 {/* Sidebar Column */}
                 <div className="space-y-8">
                     <Card title="Digital Signature" description="Used for authenticating RIS documents">
-                        <div className="aspect-video rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-dashed border-zinc-200 dark:border-zinc-800 flex flex-col items-center justify-center p-6 text-center group cursor-pointer hover:border-blue-500 transition-colors">
-                            <div className="p-4 bg-white dark:bg-zinc-800 rounded-3xl shadow-sm mb-4 border border-zinc-100 dark:border-zinc-700 text-zinc-400 group-hover:text-blue-500 transition-colors">
-                                <PenTool size={32} />
-                            </div>
-                            <p className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest leading-relaxed">
-                                Click to Upload or<br />Draw Signature
-                            </p>
-                            <p className="text-[9px] text-zinc-400 mt-2 italic">Coming soon: For RIS PDF Insertion</p>
+                        {/* Toggle Mode */}
+                        <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl mb-4">
+                            <button
+                                onClick={() => setSignatureMode('upload')}
+                                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${signatureMode === 'upload'
+                                    ? 'bg-white dark:bg-zinc-700 text-blue-600 shadow-sm'
+                                    : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400'
+                                    }`}
+                            >
+                                <Upload size={14} /> Upload
+                            </button>
+                            <button
+                                onClick={() => setSignatureMode('draw')}
+                                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${signatureMode === 'draw'
+                                    ? 'bg-white dark:bg-zinc-700 text-blue-600 shadow-sm'
+                                    : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400'
+                                    }`}
+                            >
+                                <PenTool size={14} /> Draw
+                            </button>
                         </div>
+
+                        {signatureMode === 'upload' ? (
+                            <div className="relative aspect-video rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-dashed border-zinc-200 dark:border-zinc-800 flex flex-col items-center justify-center p-6 text-center group cursor-pointer hover:border-blue-500 transition-colors overflow-hidden">
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                            const reader = new FileReader();
+                                            reader.onloadend = () => {
+                                                const base64 = reader.result as string;
+                                                if (currentUser) {
+                                                    updateUser(currentUser.id, { signature: base64 });
+                                                    alert("Signature uploaded successfully!");
+                                                }
+                                            };
+                                            reader.readAsDataURL(file);
+                                        }
+                                    }}
+                                />
+                                {currentUser?.signature ? (
+                                    <img src={currentUser.signature} alt="Digital Signature" className="h-full w-full object-contain p-2" />
+                                ) : (
+                                    <>
+                                        <div className="p-4 bg-white dark:bg-zinc-800 rounded-3xl shadow-sm mb-4 border border-zinc-100 dark:border-zinc-700 text-zinc-400 group-hover:text-blue-500 transition-colors">
+                                            <Upload size={32} />
+                                        </div>
+                                        <p className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest leading-relaxed">
+                                            Click to Upload Signature
+                                        </p>
+                                        <p className="text-[9px] text-zinc-400 mt-2 italic">Will be used for RIS generation</p>
+                                    </>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="flex flex-col gap-3">
+                                <div className="relative aspect-video rounded-2xl bg-white border-2 border-zinc-200 dark:border-zinc-700 overflow-hidden shadow-sm hover:shadow-md hover:border-blue-500/50 transition-all group">
+                                    <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
+                                        style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '16px 16px' }}
+                                    />
+                                    <canvas
+                                        ref={canvasRef}
+                                        className="absolute inset-0 w-full h-full cursor-crosshair touch-none"
+                                        onMouseDown={startDrawing}
+                                        onMouseMove={draw}
+                                        onMouseUp={stopDrawing}
+                                        onMouseLeave={stopDrawing}
+                                        onTouchStart={startDrawing}
+                                        onTouchMove={draw}
+                                        onTouchEnd={stopDrawing}
+                                    />
+                                    {/* Placeholder Text if empty (visually hidden when drawing starts usually, but keeps simple here) */}
+                                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-20 text-zinc-400">
+                                        <span className="text-4xl font-handwriting select-none">Sign Here</span>
+                                    </div>
+                                </div>
+                                <div className="flex gap-2">
+                                    <Button
+                                        variant="outline"
+                                        onClick={clearSignature}
+                                        className="flex-1 text-xs uppercase tracking-wider"
+                                    >
+                                        <Trash2 size={14} className="mr-2" /> Clear
+                                    </Button>
+                                    <Button
+                                        variant="blue"
+                                        onClick={saveDrawnSignature}
+                                        className="flex-1 text-xs uppercase tracking-wider"
+                                    >
+                                        <Save size={14} className="mr-2" /> Save
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
                     </Card>
 
                     <div className="p-6 rounded-[32px] bg-gradient-to-br from-blue-600 to-indigo-700 text-white shadow-xl shadow-blue-500/20 relative overflow-hidden group">

@@ -22,3 +22,25 @@ export const Theme = {
 } as const;
 
 export type Theme = typeof Theme[keyof typeof Theme];
+
+export interface SupplySignatures {
+  requester?: string;
+  requesterDesignation?: string;
+  requesterSigUrl?: string;
+
+  verifier?: string;
+  verifierDesignation?: string;
+  verifierSigUrl?: string;
+
+  approver?: string;
+  approverDesignation?: string;
+  approverSigUrl?: string;
+
+  issuer?: string;
+  issuerDesignation?: string;
+  issuerSigUrl?: string;
+
+  receiver?: string;
+  receiverDesignation?: string;
+  receiverSigUrl?: string;
+}

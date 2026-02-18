@@ -28,34 +28,40 @@ const PlaceholderPage: React.FC<PlaceholderPageProps> = ({ title }) => (
 
 import { DialogProvider } from './DialogContext';
 import { UserProvider } from './UserContext';
+import { GoogleAuthProvider } from './components/GoogleAuthProvider';
+import { GmailHub } from './pages/GmailHub';
 
 const App: React.FC = () => {
   return (
     <ThemeProvider>
-      <UserProvider>
-        <DialogProvider>
-          <Router>
-            <Routes>
-              {/* Public Route */}
-              <Route path="/" element={<LandingPage />} />
+      <GoogleAuthProvider>
+        <UserProvider>
+          <DialogProvider>
+            <Router>
+              <Routes>
+                {/* Public Route */}
+                <Route path="/" element={<LandingPage />} />
 
-              {/* Protected Routes (Wrapped in Layout) */}
-              <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
-              <Route path="/civil-reg" element={<Layout><RecordPage /></Layout>} />
-              <Route path="/philsys" element={<Layout><SupplyPage /></Layout>} />
-              <Route path="/statistics" element={<Layout><PlaceholderPage title="Property & Assets" /></Layout>} />
-              <Route path="/office" element={<Layout><PlaceholderPage title="Office Information" /></Layout>} />
-              <Route path="/profile" element={<Layout><ProfilePage /></Layout>} />
-              <Route path="/settings" element={<Layout><SettingsPage /></Layout>} />
+                {/* Protected Routes (Wrapped in Layout) */}
+                <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
+                <Route path="/civil-reg" element={<Layout><RecordPage /></Layout>} />
+                <Route path="/philsys" element={<Layout><SupplyPage /></Layout>} />
+                <Route path="/gmail" element={<Layout><GmailHub /></Layout>} />
+                <Route path="/statistics" element={<Layout><PlaceholderPage title="Property & Assets" /></Layout>} />
+                <Route path="/office" element={<Layout><PlaceholderPage title="Office Information" /></Layout>} />
+                <Route path="/profile" element={<Layout><ProfilePage /></Layout>} />
+                <Route path="/settings" element={<Layout><SettingsPage /></Layout>} />
 
-              {/* Fallback */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </Router>
-        </DialogProvider>
-      </UserProvider>
+                {/* Fallback */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Router>
+          </DialogProvider>
+        </UserProvider>
+      </GoogleAuthProvider>
     </ThemeProvider>
   );
 };
+
 
 export default App;
