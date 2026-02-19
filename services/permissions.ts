@@ -1,4 +1,5 @@
-import { Permission, Role } from './UserContext';
+import { Role } from '../UserContext';
+import { Permission } from '../types';
 
 /**
  * Checks if a set of effective permissions contains a specific permission.

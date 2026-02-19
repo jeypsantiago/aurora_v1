@@ -22,9 +22,11 @@ import { useGoogleAuth } from '../components/GoogleAuthProvider';
 
 import { useGoogleLogin } from '@react-oauth/google';
 import { gmailService, EmailMessage } from '../services/gmail.service';
+import { useToast } from '../ToastContext';
 
 export const GmailHub: React.FC = () => {
     const { accessToken, setAccessToken, isAuthenticated } = useGoogleAuth();
+    const { toast } = useToast();
     const { prompt } = useDialog(); // Get prompt from context
     const [emails, setEmails] = useState<EmailMessage[]>([]);
     const [loading, setLoading] = useState(false);
@@ -60,26 +62,6 @@ export const GmailHub: React.FC = () => {
     };
 
 
-    const handleAddSender = async () => {
-        const newEmail = await prompt('Add Approved Sender', 'Enter the email address of the sender you want to track:', '');
-        if (newEmail && typeof newEmail === 'string' && newEmail.includes('@')) {
-            if (!whitelist.includes(newEmail)) {
-                setWhitelist([...whitelist, newEmail]);
-            }
-        }
-    };
-
-    const handleRemoveSender = (email: string) => {
-        setWhitelist(whitelist.filter(e => e !== email));
-    };
-
-
-    const login = useGoogleLogin({
-        onSuccess: (tokenResponse) => {
-            setAccessToken(tokenResponse.access_token);
-        },
-        scope: 'https://www.googleapis.com/auth/gmail.readonly',
-    });
 
     const fetchEmails = async () => {
         if (!accessToken) return;
@@ -106,6 +88,7 @@ export const GmailHub: React.FC = () => {
             console.error(err);
         } finally {
             setLoading(false);
+            if (isAuthenticated) toast('success', "Emails synced with Gmail");
         }
     };
 
@@ -134,16 +117,16 @@ export const GmailHub: React.FC = () => {
 
     if (!isAuthenticated) {
         return (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-                <div className="w-20 h-20 bg-blue-50 dark:bg-blue-900/20 rounded-3xl flex items-center justify-center text-blue-600 mb-6 shadow-xl shadow-blue-500/10">
-                    <Mail size={40} />
+            <div className="flex flex-col items-center justify-center py-24 text-center">
+                <div className="w-24 h-24 bg-blue-50 dark:bg-blue-900/20 rounded-[32px] flex items-center justify-center text-blue-600 mb-8 shadow-xl shadow-blue-500/10">
+                    <Mail size={48} />
                 </div>
-                <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">Gmail Integration</h2>
-                <p className="text-zinc-500 dark:text-zinc-400 max-w-md mb-8">
-                    Sign in with your Google account to automatically fetch and display emails and attachments for Aurora Provincial Office.
+                <h2 className="text-2xl font-black text-zinc-900 dark:text-white mb-2 tracking-tight">Gmail Disconnected</h2>
+                <p className="text-zinc-500 dark:text-zinc-400 max-w-sm mb-10 text-sm font-medium leading-relaxed">
+                    Account connection and approved sender lists are now managed in the system settings.
                 </p>
-                <Button variant="blue" onClick={() => login()} className="px-8 py-3 rounded-2xl">
-                    Sign in with Google
+                <Button variant="blue" onClick={() => window.location.hash = '#/settings'} className="px-10 h-14 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-blue-500/20">
+                    Go to Settings
                 </Button>
             </div>
         );
@@ -156,49 +139,21 @@ export const GmailHub: React.FC = () => {
                 <div>
                     <h1 className="text-2xl sm:text-3xl font-extrabold text-zinc-900 dark:text-white tracking-tight">Gmail Hub</h1>
                     <div className="flex items-center gap-2 mt-2">
-                        <Badge variant="info" className="!px-3 py-1">Connected</Badge>
-                        <span className="text-zinc-400 dark:text-zinc-500 text-[12px] font-medium flex items-center gap-1">
+                        <Badge variant="info" className="!px-3 py-1 font-bold">Connected</Badge>
+                        <span className="text-zinc-400 dark:text-zinc-500 text-[11px] font-bold uppercase tracking-widest flex items-center gap-1.5 ml-1">
                             <Clock size={12} /> Last synced: Just now
                         </span>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" onClick={fetchEmails} disabled={loading}>
+                    <Button variant="outline" onClick={fetchEmails} disabled={loading} className="h-11 rounded-xl">
                         {loading ? <Loader2 size={14} className="mr-2 animate-spin" /> : <RefreshCw size={14} className="mr-2" />}
-                        Refresh
+                        Sync Inbox
+                    </Button>
+                    <Button variant="ghost" onClick={() => window.location.hash = '#/settings'} className="h-11 w-11 p-0 rounded-xl bg-zinc-100 dark:bg-zinc-900">
+                        <Settings2 size={18} />
                     </Button>
                 </div>
-            </div>
-
-            {/* Approved Senders Whitelist */}
-            <div className="grid grid-cols-1 gap-6">
-                <Card
-                    title="Approved Senders"
-                    description="Only emails from these addresses will be fetched and displayed"
-                    action={
-                        <Button variant="blue" onClick={handleAddSender} className="!py-1.5 !px-3 !text-[11px]">
-                            <Plus size={14} className="mr-1" /> Add Sender
-                        </Button>
-                    }
-                >
-                    <div className="flex flex-wrap gap-2">
-                        {whitelist.length === 0 ? (
-                            <p className="text-xs text-zinc-500 italic py-2">No approved senders. All emails from your inbox will be shown if filter is empty.</p>
-                        ) : (
-                            whitelist.map((email) => (
-                                <div key={email} className="flex items-center gap-2 px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 group hover:border-blue-400 dark:hover:border-blue-500 transition-all">
-                                    <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">{email}</span>
-                                    <button
-                                        onClick={() => handleRemoveSender(email)}
-                                        className="text-zinc-400 hover:text-red-500 transition-colors ml-1"
-                                    >
-                                        <Trash2 size={12} />
-                                    </button>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </Card>
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">

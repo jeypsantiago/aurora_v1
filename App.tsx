@@ -33,6 +33,8 @@ import { RbacProvider } from './RbacContext';
 import { GoogleAuthProvider } from './components/GoogleAuthProvider';
 import { GmailHub } from './pages/GmailHub';
 
+import { ToastProvider } from './ToastContext';
+
 const App: React.FC = () => {
   return (
     <ThemeProvider>
@@ -40,25 +42,27 @@ const App: React.FC = () => {
         <UserProvider>
           <RbacProvider>
             <DialogProvider>
-              <Router>
-                <Routes>
-                  {/* Public Route */}
-                  <Route path="/" element={<LandingPage />} />
+              <ToastProvider>
+                <Router>
+                  <Routes>
+                    {/* Public Route */}
+                    <Route path="/" element={<LandingPage />} />
 
-                  {/* Protected Routes (Wrapped in Layout + ProtectedRoute) */}
-                  <Route path="/dashboard" element={<Layout><ProtectedRoute requires="dashboard.view"><Dashboard /></ProtectedRoute></Layout>} />
-                  <Route path="/records" element={<Layout><ProtectedRoute requires="records.view"><RecordPage /></ProtectedRoute></Layout>} />
-                  <Route path="/supplies" element={<Layout><ProtectedRoute requires="supply.view"><SupplyPage /></ProtectedRoute></Layout>} />
-                  <Route path="/gmail" element={<Layout><ProtectedRoute requires="gmail.view"><GmailHub /></ProtectedRoute></Layout>} />
-                  <Route path="/properties" element={<Layout><ProtectedRoute requires="property.view"><PlaceholderPage title="Property & Assets" /></ProtectedRoute></Layout>} />
-                  <Route path="/office" element={<Layout><ProtectedRoute requires="dashboard.view"><PlaceholderPage title="Office Information" /></ProtectedRoute></Layout>} />
-                  <Route path="/profile" element={<Layout><ProtectedRoute><ProfilePage /></ProtectedRoute></Layout>} />
-                  <Route path="/settings" element={<Layout><ProtectedRoute requires="settings.view"><SettingsPage /></ProtectedRoute></Layout>} />
+                    {/* Protected Routes (Wrapped in Layout + ProtectedRoute) */}
+                    <Route path="/dashboard" element={<Layout><ProtectedRoute requires="dashboard.view"><Dashboard /></ProtectedRoute></Layout>} />
+                    <Route path="/records" element={<Layout><ProtectedRoute requires="records.view"><RecordPage /></ProtectedRoute></Layout>} />
+                    <Route path="/supplies" element={<Layout><ProtectedRoute requires="supply.view"><SupplyPage /></ProtectedRoute></Layout>} />
+                    <Route path="/gmail" element={<Layout><ProtectedRoute requires="gmail.view"><GmailHub /></ProtectedRoute></Layout>} />
+                    <Route path="/properties" element={<Layout><ProtectedRoute requires="property.view"><PlaceholderPage title="Property & Assets" /></ProtectedRoute></Layout>} />
+                    <Route path="/office" element={<Layout><ProtectedRoute requires="dashboard.view"><PlaceholderPage title="Office Information" /></ProtectedRoute></Layout>} />
+                    <Route path="/profile" element={<Layout><ProtectedRoute><ProfilePage /></ProtectedRoute></Layout>} />
+                    <Route path="/settings" element={<Layout><ProtectedRoute requires="settings.view"><SettingsPage /></ProtectedRoute></Layout>} />
 
-                  {/* Fallback */}
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-              </Router>
+                    {/* Fallback */}
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
+                </Router>
+              </ToastProvider>
             </DialogProvider>
           </RbacProvider>
         </UserProvider>

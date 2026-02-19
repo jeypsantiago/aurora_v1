@@ -353,7 +353,7 @@ export const generateRIS = async (request: any, users: User[]) => {
         id: item.id,
         name: item.name,
         unit: item.unit,
-        quantity: item.qty,
+        quantity: item.requestedQty,
         issueQuantity: ['For Issuance', 'To Receive', 'History'].includes(request.status) ? item.qty : undefined,
     }));
 
@@ -365,7 +365,7 @@ export const generateRIS = async (request: any, users: User[]) => {
 
     const signatures: SupplySignatures = {
         requester: requester?.name || request.requester,
-        requesterDesignation: requester?.role,
+        requesterDesignation: requester?.roles?.[0],
         requesterSigUrl: requester?.signature,
 
         approver: 'FERDINAND E. SANTIAGO', // Force fallback if needed, but handled in generator
@@ -378,7 +378,7 @@ export const generateRIS = async (request: any, users: User[]) => {
 
         receiver: receiver?.name,
         receiverSigUrl: receiver?.signature,
-        receiverDesignation: receiver?.role, // Added missing mapping
+        receiverDesignation: receiver?.roles?.[0], // Added missing mapping
     };
 
     // 3. Map Dates

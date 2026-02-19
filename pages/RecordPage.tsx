@@ -31,6 +31,7 @@ import { Card, Badge, Button, Tabs, Modal, Input } from '../components/ui';
 import { useDialog } from '../DialogContext';
 import { useRbac } from '../RbacContext';
 import { PermissionGate } from '../components/PermissionGate';
+import { useToast } from '../ToastContext';
 
 interface AuditLog {
   action: string;
@@ -51,6 +52,7 @@ interface RegistryRecord {
 
 export const RecordPage: React.FC = () => {
   const { alert, confirm } = useDialog();
+  const { toast } = useToast();
   const { can } = useRbac();
   const [activeTab, setActiveTab] = useState('history');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -217,6 +219,7 @@ export const RecordPage: React.FC = () => {
         setLastCreated(newRecord);
         setIsModalOpen(false);
         setIsSuccessModalOpen(true);
+        toast('success', `Record ${newRecord.reg} created successfully`);
       }
     }
   };
@@ -230,8 +233,9 @@ export const RecordPage: React.FC = () => {
   };
 
   const deleteRecord = async (reg: string) => {
-    if (await confirm(`Delete registry record ${reg}?`)) {
+    if (await confirm(`Are you sure you want to delete record ${reg}?`)) {
       setRecords(records.filter(r => r.reg !== reg));
+      toast('success', `Record ${reg} deleted`);
     }
   };
 

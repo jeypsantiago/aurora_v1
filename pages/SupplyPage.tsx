@@ -42,6 +42,7 @@ import { useRbac } from '../RbacContext';
 import { useUsers } from '../UserContext';
 import { useDialog } from '../DialogContext';
 import { useEffect } from 'react';
+import { useToast } from '../ToastContext';
 
 interface InventoryItem {
   id: string;
@@ -56,7 +57,7 @@ type RequestStatus = 'For Verification' | 'Awaiting Approval' | 'For Issuance' |
 
 interface SupplyRequest {
   id: string;
-  items: { id: string; name: string; qty: number; unit: string }[];
+  items: { id: string; name: string; qty: number; requestedQty: number; unit: string }[];
   purpose: string;
   status: RequestStatus;
   date: string;
@@ -201,6 +202,7 @@ const isActiveStatus = (s: RequestStatus) => s !== 'History' && s !== 'Rejected'
 export const SupplyPage: React.FC = () => {
   const { currentUser, users } = useUsers();
   const { alert } = useDialog();
+  const { toast } = useToast();
   const { can } = useRbac();
   // -- State for Tabs --
   const [activeTab, setActiveTab] = useState('items');
@@ -222,14 +224,39 @@ export const SupplyPage: React.FC = () => {
   ]);
   const [itemSearch, setItemSearch] = useState('');
   const [inventorySearch, setInventorySearch] = useState('');
-  const [itemsViewMode, setItemsViewMode] = useState<'list' | 'grid'>('grid');
-  const [inventoryViewMode, setInventoryViewMode] = useState<'list' | 'grid'>('list');
+  const [itemsViewMode, setItemsViewMode] = useState<'list' | 'grid'>(() => {
+    return (localStorage.getItem('supply_items_view') as 'list' | 'grid') || 'grid';
+  });
+  const [inventoryViewMode, setInventoryViewMode] = useState<'list' | 'grid'>(() => {
+    return (localStorage.getItem('supply_inventory_view') as 'list' | 'grid') || 'list';
+  });
   const [itemQuantities, setItemQuantities] = useState<Record<string, number>>({});
 
   // -- State for Cart/Requests --
-  const [requestCart, setRequestCart] = useState<{ itemId: string; qty: number }[]>([]);
+  const [requestCart, setRequestCart] = useState<{ itemId: string; qty: number }[]>(() => {
+    const saved = localStorage.getItem('supply_cart');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
-  const [requestPurpose, setRequestPurpose] = useState('');
+  const [requestPurpose, setRequestPurpose] = useState(() => {
+    return localStorage.getItem('supply_request_purpose') || '';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('supply_items_view', itemsViewMode);
+  }, [itemsViewMode]);
+
+  useEffect(() => {
+    localStorage.setItem('supply_inventory_view', inventoryViewMode);
+  }, [inventoryViewMode]);
+
+  useEffect(() => {
+    localStorage.setItem('supply_cart', JSON.stringify(requestCart));
+  }, [requestCart]);
+
+  useEffect(() => {
+    localStorage.setItem('supply_request_purpose', requestPurpose);
+  }, [requestPurpose]);
 
   // -- State for Modals/Editing --
   const [isNewItemModalOpen, setIsNewItemModalOpen] = useState(false);
@@ -259,10 +286,12 @@ export const SupplyPage: React.FC = () => {
     }
     // Reset modifier
     setItemQuantities(prev => ({ ...prev, [itemId]: 1 }));
+    toast('success', "Item added to request cart");
   };
 
   const handleRemoveFromCart = (itemId: string) => {
     setRequestCart(requestCart.filter(c => c.itemId !== itemId));
+    toast('info', "Item removed from cart");
   };
 
   const openDetailModal = (req: SupplyRequest) => {
@@ -292,7 +321,7 @@ export const SupplyPage: React.FC = () => {
   const [requests, setRequests] = useState<SupplyRequest[]>([
     {
       id: 'REQ-001',
-      items: [{ id: '2', name: 'SECPA Forms', qty: 100, unit: 'Forms' }],
+      items: [{ id: '2', name: 'SECPA Forms', qty: 100, requestedQty: 100, unit: 'Forms' }],
       purpose: 'Monthly Civil Registry allocation for Baler Municipality',
       status: 'For Verification',
       date: '2h ago',
@@ -301,7 +330,7 @@ export const SupplyPage: React.FC = () => {
     },
     {
       id: 'REQ-002',
-      items: [{ id: '1', name: 'A4 Printing Paper', qty: 10, unit: 'Reams' }],
+      items: [{ id: '1', name: 'A4 Printing Paper', qty: 10, requestedQty: 10, unit: 'Reams' }],
       purpose: 'Standard office replenishment',
       status: 'Awaiting Approval',
       date: '5h ago',
@@ -320,7 +349,7 @@ export const SupplyPage: React.FC = () => {
 
     const newReqItems = requestCart.map(cartItem => {
       const invItem = inventory.find(i => i.id === cartItem.itemId)!;
-      return { id: invItem.id, name: invItem.name, qty: cartItem.qty, unit: invItem.unit };
+      return { id: invItem.id, name: invItem.name, qty: cartItem.qty, requestedQty: cartItem.qty, unit: invItem.unit };
     });
 
     const newReq: SupplyRequest = {
@@ -345,6 +374,7 @@ export const SupplyPage: React.FC = () => {
     setRequestCart([]);
     setRequestPurpose('');
     setIsRequestModalOpen(false);
+    toast('success', "Requisition request submitted successfully");
   };
 
   // --- Workflow Handlers ---
@@ -359,13 +389,16 @@ export const SupplyPage: React.FC = () => {
         return {
           ...invItem,
           physicalQty: invItem.physicalQty - reqItem.qty,
-          pendingQty: invItem.pendingQty - reqItem.qty
+          pendingQty: invItem.pendingQty - reqItem.requestedQty
         };
       }
       return invItem;
     }));
 
     setRequests(prev => prev.map(r => r.id === reqId ? { ...r, status: 'Awaiting Approval' } : r));
+    setIsDetailModalOpen(false);
+    setSelectedRequest(null);
+    toast('success', `Request ${reqId} verified`);
   };
 
   const handleApprove = (reqId: string) => {
@@ -375,6 +408,7 @@ export const SupplyPage: React.FC = () => {
       status: 'For Issuance',
       approverId: currentUser?.id
     } : r));
+    toast('success', `Request ${reqId} approved`);
   };
 
   const handleIssue = (reqId: string) => {
@@ -384,6 +418,7 @@ export const SupplyPage: React.FC = () => {
       status: 'To Receive',
       issuedById: currentUser?.id
     } : r));
+    toast('success', `Items issued for ${reqId}`);
   };
 
   const handleReceive = (reqId: string) => {
@@ -392,10 +427,12 @@ export const SupplyPage: React.FC = () => {
       status: 'History',
       receivedById: currentUser?.id
     } : r));
+    toast('success', `Request ${reqId} marked as received`);
   };
 
   const handleReject = (reqId: string) => {
     setRequests(prev => prev.map(r => r.id === reqId ? { ...r, status: 'Rejected' } : r));
+    toast('warning', `Request ${reqId} rejected`);
   };
 
   const handleSaveItem = () => {
@@ -415,6 +452,7 @@ export const SupplyPage: React.FC = () => {
     setItemFormData({ name: '', unit: 'Reams', physicalQty: 0, reorderPoint: 0 });
     setEditingItem(null);
     setIsNewItemModalOpen(false);
+    toast('success', `Inventory item ${editingItem ? 'updated' : 'added'}`);
   };
 
   const openEditItemModal = (item: InventoryItem) => {
@@ -800,7 +838,7 @@ export const SupplyPage: React.FC = () => {
                       </Button>
                       <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-800 mx-1" />
                       {activeApprovalTab === 'For Verification' && (
-                        <Button variant="blue" className="!text-[9px] !py-2 !px-4 h-9 uppercase font-black" onClick={() => handleVerify(req.id)}>Verify</Button>
+                        <Button variant="blue" className="!text-[9px] !py-2 !px-4 h-9 uppercase font-black" onClick={() => openDetailModal(req)}>Verify</Button>
                       )}
                       {activeApprovalTab === 'Awaiting Approval' && (
                         <Button variant="primary" className="!text-[9px] !py-2 !px-4 h-9 uppercase font-black" onClick={() => handleApprove(req.id)}>Approve</Button>
@@ -987,27 +1025,31 @@ export const SupplyPage: React.FC = () => {
         title={`Requisition Details: ${selectedRequest?.id}`}
         footer={
           <div className="flex gap-2 w-full">
-            <Button variant="ghost" className="flex-1" onClick={() => { setIsDetailModalOpen(false); setSelectedRequest(null); }}>
-              {selectedRequest?.status === 'For Verification' ? 'Discard Changes' : 'Close'}
-            </Button>
-            {selectedRequest?.status === 'For Verification' && (
-              <Button variant="blue" className="flex-[2] uppercase font-black text-[10px] tracking-widest shadow-lg shadow-blue-500/20" onClick={saveRequestModification}>Update Quantities</Button>
+            {selectedRequest?.status === 'For Verification' ? (
+              <>
+                <Button variant="ghost" className="flex-1 uppercase font-black text-[10px] tracking-widest" onClick={saveRequestModification}>Update Quantities</Button>
+                <Button variant="blue" className="flex-[2] uppercase font-black text-[10px] tracking-widest shadow-lg shadow-blue-500/20" onClick={() => handleVerify(selectedRequest.id)}>Verify Request</Button>
+              </>
+            ) : (
+              <Button variant="ghost" className="w-full" onClick={() => { setIsDetailModalOpen(false); setSelectedRequest(null); }}>
+                Close
+              </Button>
             )}
           </div>
         }
       >
         {selectedRequest && (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {selectedRequest.status === 'History' && (
               <div className="mx-4 p-4 bg-emerald-50 dark:bg-emerald-500/5 border-2 border-dashed border-emerald-100 dark:border-emerald-500/20 rounded-3xl flex flex-col items-center gap-3 text-center animate-in fade-in zoom-in duration-500">
                 <div className="w-12 h-12 bg-white dark:bg-zinc-950 rounded-2xl flex items-center justify-center text-emerald-500 shadow-lg shadow-emerald-500/10 border border-emerald-100 dark:border-emerald-900/40">
                   <CheckCircle2 size={24} strokeWidth={2.5} className="animate-in zoom-in spin-in-12 duration-700" />
                 </div>
                 <div>
-                  <div className="inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-500 text-white text-[9px] font-black uppercase tracking-widest mb-1.5 shadow-md shadow-emerald-500/20">
+                  <div className="inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-500 text-white text-[8.5px] font-black uppercase tracking-widest mb-1.5 shadow-md shadow-emerald-500/20">
                     Request Fulfilled
                   </div>
-                  <p className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400">
+                  <p className="text-[10.5px] font-bold text-emerald-700 dark:text-emerald-400 leading-relaxed">
                     This requisition has been successfully fulfilled and the items have been received.
                   </p>
                 </div>
@@ -1034,7 +1076,8 @@ export const SupplyPage: React.FC = () => {
                   <thead>
                     <tr className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em] border-b border-zinc-100 dark:border-zinc-800/50">
                       <th className="pb-3 pr-4">Item (Unit)</th>
-                      <th className="pb-3 text-center">Qty</th>
+                      <th className="pb-3 text-center">Req.</th>
+                      <th className="pb-3 text-center">Issue</th>
                       <th className="pb-3 text-center">Phys.</th>
                       <th className="pb-3 text-center">Avail.</th>
                       <th className="pb-3 text-center">Pend.</th>
@@ -1051,6 +1094,7 @@ export const SupplyPage: React.FC = () => {
                               <span className="text-[8px] text-zinc-400 font-bold uppercase">{inv.unit}</span>
                             </div>
                           </td>
+                          <td className="py-3 text-[11px] font-bold text-zinc-400 text-center">{reqItem.requestedQty}</td>
                           <td className="py-3">
                             <div className="flex items-center justify-center gap-1.5">
                               {selectedRequest.status === 'For Verification' ? (
