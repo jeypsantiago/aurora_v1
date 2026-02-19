@@ -33,6 +33,7 @@ import {
 import { useTheme } from '../theme-context';
 import { Theme } from '../types';
 import { useUsers } from '../UserContext';
+import { useRbac } from '../RbacContext';
 import { Modal, Button, Input, Badge, Card } from './ui';
 import { useDialog } from '../DialogContext';
 
@@ -44,6 +45,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { currentUser, logout, roles } = useUsers();
+  const { visibleNavItems } = useRbac();
   const { alert } = useDialog();
   const location = useLocation();
   const navigate = useNavigate();
@@ -54,8 +56,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     setIsSidebarOpen(false);
   }, [location]);
 
-  const userRole = roles.find(r => r.name === currentUser?.role);
-  const badgeColor = userRole?.badgeColor || 'zinc';
+  // Helper to get badge color for a role name
+  const getBadgeColor = (roleName: string) => {
+    const role = roles.find(r => r.name === roleName);
+    return role?.badgeColor || 'zinc';
+  };
 
   useEffect(() => {
     if (isSidebarOpen) {
@@ -70,14 +75,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     };
   }, [isSidebarOpen]);
 
-  const navItems = [
-    { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { label: 'Records', href: '/records', icon: FileText },
-    { label: 'Supplies', href: '/supplies', icon: Package },
-    { label: 'Properties', href: '/properties', icon: Building2 },
-    { label: 'Gmail Hub', href: '/gmail', icon: Mail },
-    { label: 'Settings', href: '/settings', icon: Settings },
-  ];
+  // navItems are now provided by visibleNavItems from useRbac()
 
 
   const handleLogout = () => {
@@ -130,7 +128,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               Management
             </div>
 
-            {navItems.map((item) => (
+            {visibleNavItems.map((item) => (
               <NavLink
                 key={item.href}
                 to={item.href}
@@ -224,12 +222,16 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </div>
                 <div className="hidden sm:flex flex-col">
                   <p className="text-[11px] font-black text-zinc-900 dark:text-white uppercase tracking-tight leading-none truncate max-w-[100px]">{currentUser?.name}</p>
-                  <div className={`
-                    mt-1.5 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider w-fit
-                    bg-${badgeColor}-50 text-${badgeColor}-700 border border-${badgeColor}-100
-                    dark:bg-${badgeColor}-500/10 dark:text-${badgeColor}-400 dark:border-${badgeColor}-500/20
-                  `}>
-                    {currentUser?.role}
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {currentUser?.roles.map((roleName) => (
+                      <div key={roleName} className={`
+                        px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider w-fit
+                        bg-${getBadgeColor(roleName)}-50 text-${getBadgeColor(roleName)}-700 border border-${getBadgeColor(roleName)}-100
+                        dark:bg-${getBadgeColor(roleName)}-500/10 dark:text-${getBadgeColor(roleName)}-400 dark:border-${getBadgeColor(roleName)}-500/20
+                      `}>
+                        {roleName}
+                      </div>
+                    ))}
                   </div>
                 </div>
                 <ChevronDown size={14} className={`text-zinc-400 transition-transform duration-300 ${isProfileDropdownOpen ? 'rotate-180' : ''}`} />

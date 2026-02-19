@@ -36,9 +36,12 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { Card, Badge, Button, Tabs, ProgressBar, Modal, Input } from '../components/ui';
+import { generateRIS } from '../services/risGenerator';
+import { PermissionGate } from '../components/PermissionGate';
+import { useRbac } from '../RbacContext';
 import { useUsers } from '../UserContext';
 import { useDialog } from '../DialogContext';
-import { generateRIS } from '../services/risGenerator';
+import { useEffect } from 'react';
 
 interface InventoryItem {
   id: string;
@@ -196,8 +199,9 @@ const RequestBadge = ({ status }: { status: RequestStatus }) => {
 const isActiveStatus = (s: RequestStatus) => s !== 'History' && s !== 'Rejected';
 
 export const SupplyPage: React.FC = () => {
-  const { currentUser, users } = useUsers(); // Get currentUser and users list
+  const { currentUser, users } = useUsers();
   const { alert } = useDialog();
+  const { can } = useRbac();
   // -- State for Tabs --
   const [activeTab, setActiveTab] = useState('items');
   const [activeInventoryTab, setActiveInventoryTab] = useState('all');
@@ -443,12 +447,22 @@ export const SupplyPage: React.FC = () => {
     return matchSearch && matchTab;
   });
 
-  const tabs = [
-    { id: 'items', label: 'Items', icon: Database },
-    { id: 'my-requests', label: 'My Request', icon: UserCheck },
-    { id: 'approval', label: 'Approval', icon: CheckCircle },
-    { id: 'inventory', label: 'Inventory', icon: Package },
-  ];
+  const tabs = useMemo(() => {
+    const allTabs = [
+      { id: 'items', label: 'Items', icon: Database, permission: 'supply.view' as const },
+      { id: 'my-requests', label: 'My Request', icon: UserCheck, permission: 'supply.view' as const },
+      { id: 'approval', label: 'Approval', icon: CheckCircle, permission: 'supply.approve' as const },
+      { id: 'inventory', label: 'Inventory', icon: Package, permission: 'supply.inventory' as const },
+    ];
+    return allTabs.filter(tab => can(tab.permission));
+  }, [can]);
+
+  // Ensure active tab is valid if permissions change
+  useEffect(() => {
+    if (!tabs.find(t => t.id === activeTab) && tabs.length > 0) {
+      setActiveTab(tabs[0].id);
+    }
+  }, [tabs, activeTab]);
 
   const approvalTabs: { id: RequestStatus; icon: any }[] = [
     { id: 'For Verification', icon: FileCheck },
@@ -513,9 +527,11 @@ export const SupplyPage: React.FC = () => {
                   <LayoutGrid size={16} />
                 </button>
               </div>
-              <Button variant="blue" className="px-4 h-[38px] rounded-xl shadow-lg shadow-blue-500/20 text-[10px] font-black uppercase flex-1 md:flex-initial" onClick={() => setIsRequestModalOpen(true)}>
-                <ShoppingCart size={14} className="mr-2" /> Cart ({requestCart.length})
-              </Button>
+              <PermissionGate requires="supply.request">
+                <Button variant="blue" className="px-4 h-[38px] rounded-xl shadow-lg shadow-blue-500/20 text-[10px] font-black uppercase flex-1 md:flex-initial" onClick={() => setIsRequestModalOpen(true)}>
+                  <ShoppingCart size={14} className="mr-2" /> Cart ({requestCart.length})
+                </Button>
+              </PermissionGate>
             </div>
           </div>
 
@@ -558,25 +574,27 @@ export const SupplyPage: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-1.5 mt-auto pt-2.5 border-t border-zinc-50 dark:border-zinc-800/40">
-                      <div className="flex items-center bg-zinc-100/80 dark:bg-zinc-800/80 rounded-lg px-2 py-1 gap-2 flex-1 border border-zinc-200 dark:border-zinc-700 shadow-inner">
-                        <button onClick={() => updateItemModifier(item.id, -1)} className="text-zinc-400 hover:text-blue-600 transition-colors">
-                          <Minus size={12} />
-                        </button>
-                        <span className="flex-1 text-center text-[11px] font-black text-zinc-900 dark:text-white min-w-[14px]">
-                          {itemQuantities[item.id] || 1}
-                        </span>
-                        <button onClick={() => updateItemModifier(item.id, 1)} className="text-zinc-400 hover:text-blue-600 transition-colors">
-                          <Plus size={10} />
-                        </button>
-                      </div>
-                      <Button
-                        variant="blue"
-                        disabled={available <= 0}
-                        className="!p-0 w-8 h-8 rounded-lg shadow-blue-500/10 hover:scale-105 active:scale-95 transition-all"
-                        onClick={() => handleAddItemToCart(item.id)}
-                      >
-                        <Plus size={16} />
-                      </Button>
+                      <PermissionGate requires="supply.request" fallback={<div className="flex-1 text-[10px] text-zinc-400 font-bold uppercase py-2 text-center italic">View Only</div>}>
+                        <div className="flex items-center bg-zinc-100/80 dark:bg-zinc-800/80 rounded-lg px-2 py-1 gap-2 flex-1 border border-zinc-200 dark:border-zinc-700 shadow-inner">
+                          <button onClick={() => updateItemModifier(item.id, -1)} className="text-zinc-400 hover:text-blue-600 transition-colors">
+                            <Minus size={12} />
+                          </button>
+                          <span className="flex-1 text-center text-[11px] font-black text-zinc-900 dark:text-white min-w-[14px]">
+                            {itemQuantities[item.id] || 1}
+                          </span>
+                          <button onClick={() => updateItemModifier(item.id, 1)} className="text-zinc-400 hover:text-blue-600 transition-colors">
+                            <Plus size={10} />
+                          </button>
+                        </div>
+                        <Button
+                          variant="blue"
+                          disabled={available <= 0}
+                          className="!p-0 w-8 h-8 rounded-lg shadow-blue-500/10 hover:scale-105 active:scale-95 transition-all"
+                          onClick={() => handleAddItemToCart(item.id)}
+                        >
+                          <Plus size={16} />
+                        </Button>
+                      </PermissionGate>
                     </div>
                   </Card>
                 );

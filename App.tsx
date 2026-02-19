@@ -8,6 +8,7 @@ import { RecordPage } from './pages/RecordPage';
 import { SupplyPage } from './pages/SupplyPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { SettingsPage } from './pages/SettingsPage';
+import { ProtectedRoute } from './components/ProtectedRoute';
 
 // Placeholder components for other routes
 interface PlaceholderPageProps {
@@ -28,6 +29,7 @@ const PlaceholderPage: React.FC<PlaceholderPageProps> = ({ title }) => (
 
 import { DialogProvider } from './DialogContext';
 import { UserProvider } from './UserContext';
+import { RbacProvider } from './RbacContext';
 import { GoogleAuthProvider } from './components/GoogleAuthProvider';
 import { GmailHub } from './pages/GmailHub';
 
@@ -36,27 +38,29 @@ const App: React.FC = () => {
     <ThemeProvider>
       <GoogleAuthProvider>
         <UserProvider>
-          <DialogProvider>
-            <Router>
-              <Routes>
-                {/* Public Route */}
-                <Route path="/" element={<LandingPage />} />
+          <RbacProvider>
+            <DialogProvider>
+              <Router>
+                <Routes>
+                  {/* Public Route */}
+                  <Route path="/" element={<LandingPage />} />
 
-                {/* Protected Routes (Wrapped in Layout) */}
-                <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
-                <Route path="/records" element={<Layout><RecordPage /></Layout>} />
-                <Route path="/supplies" element={<Layout><SupplyPage /></Layout>} />
-                <Route path="/gmail" element={<Layout><GmailHub /></Layout>} />
-                <Route path="/properties" element={<Layout><PlaceholderPage title="Property & Assets" /></Layout>} />
-                <Route path="/office" element={<Layout><PlaceholderPage title="Office Information" /></Layout>} />
-                <Route path="/profile" element={<Layout><ProfilePage /></Layout>} />
-                <Route path="/settings" element={<Layout><SettingsPage /></Layout>} />
+                  {/* Protected Routes (Wrapped in Layout + ProtectedRoute) */}
+                  <Route path="/dashboard" element={<Layout><ProtectedRoute requires="dashboard.view"><Dashboard /></ProtectedRoute></Layout>} />
+                  <Route path="/records" element={<Layout><ProtectedRoute requires="records.view"><RecordPage /></ProtectedRoute></Layout>} />
+                  <Route path="/supplies" element={<Layout><ProtectedRoute requires="supply.view"><SupplyPage /></ProtectedRoute></Layout>} />
+                  <Route path="/gmail" element={<Layout><ProtectedRoute requires="gmail.view"><GmailHub /></ProtectedRoute></Layout>} />
+                  <Route path="/properties" element={<Layout><ProtectedRoute requires="property.view"><PlaceholderPage title="Property & Assets" /></ProtectedRoute></Layout>} />
+                  <Route path="/office" element={<Layout><ProtectedRoute requires="dashboard.view"><PlaceholderPage title="Office Information" /></ProtectedRoute></Layout>} />
+                  <Route path="/profile" element={<Layout><ProtectedRoute><ProfilePage /></ProtectedRoute></Layout>} />
+                  <Route path="/settings" element={<Layout><ProtectedRoute requires="settings.view"><SettingsPage /></ProtectedRoute></Layout>} />
 
-                {/* Fallback */}
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </Router>
-          </DialogProvider>
+                  {/* Fallback */}
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </Router>
+            </DialogProvider>
+          </RbacProvider>
         </UserProvider>
       </GoogleAuthProvider>
     </ThemeProvider>

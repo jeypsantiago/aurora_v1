@@ -44,6 +44,7 @@ import {
 import { Card, Badge, Button, Tabs, Modal, Input } from '../components/ui';
 import { useDialog } from '../DialogContext';
 import { useUsers, User, Role } from '../UserContext';
+import { PERMISSION_GROUPS, Permission, PERMISSION_DESCRIPTIONS } from '../types';
 
 interface FormField {
   id: string;
@@ -158,7 +159,7 @@ export const SettingsPage: React.FC = () => {
   const [userFormData, setUserFormData] = useState({
     name: '',
     email: '',
-    role: 'Viewer Only',
+    roles: [] as string[],
     gender: 'Male',
     position: '',
     password: ''
@@ -169,6 +170,7 @@ export const SettingsPage: React.FC = () => {
   const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
   const [roleFormData, setRoleFormData] = useState<Omit<Role, 'id'>>({
     name: '',
+    description: '',
     permissions: [],
     badgeColor: 'blue'
   });
@@ -356,7 +358,7 @@ export const SettingsPage: React.FC = () => {
     setUserFormData({
       name: '',
       email: '',
-      role: 'Viewer Only',
+      roles: [],
       gender: 'Male',
       position: '',
       password: ''
@@ -369,7 +371,7 @@ export const SettingsPage: React.FC = () => {
     setUserFormData({
       name: user.name,
       email: user.email,
-      role: user.role,
+      roles: user.roles || [],
       gender: user.gender,
       position: user.position,
       password: user.password || ''
@@ -398,6 +400,7 @@ export const SettingsPage: React.FC = () => {
     setEditingRoleId(null);
     setRoleFormData({
       name: '',
+      description: '',
       permissions: [],
       badgeColor: 'blue'
     });
@@ -408,6 +411,7 @@ export const SettingsPage: React.FC = () => {
     setEditingRoleId(role.id);
     setRoleFormData({
       name: role.name,
+      description: role.description || '',
       permissions: role.permissions,
       badgeColor: role.badgeColor
     });
@@ -816,7 +820,7 @@ export const SettingsPage: React.FC = () => {
                     <thead>
                       <tr className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest border-b border-zinc-100 dark:border-zinc-800">
                         <th className="pb-3 px-5 sm:px-0">User Account</th>
-                        <th className="pb-3">Role</th>
+                        <th className="pb-3">Assigned Roles</th>
                         <th className="pb-3">Last Access</th>
                         <th className="pb-3 text-right px-5 sm:px-0">Actions</th>
                       </tr>
@@ -836,7 +840,11 @@ export const SettingsPage: React.FC = () => {
                             </div>
                           </td>
                           <td className="py-4">
-                            <Badge variant={user.role === 'Super Admin' ? 'info' : 'default'}>{user.role}</Badge>
+                            <div className="flex flex-wrap gap-1">
+                              {user.roles.map(role => (
+                                <Badge key={role} variant={role === 'Super Admin' ? 'info' : 'default'} className="!text-[9px]">{role}</Badge>
+                              ))}
+                            </div>
                           </td>
                           <td className="py-4 text-xs text-zinc-500 font-medium">{user.lastAccess}</td>
                           <td className="py-4 text-right px-5 sm:px-0">
@@ -871,14 +879,19 @@ export const SettingsPage: React.FC = () => {
                   {roles.map((role, i) => (
                     <div key={i} className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all cursor-pointer group" onClick={() => openEditRoleModal(role)}>
                       <div className="flex justify-between items-start mb-3">
-                        <Badge className={`bg-${role.badgeColor}-50 text-${role.badgeColor}-700 dark:bg-${role.badgeColor}-500/10 dark:text-${role.badgeColor}-400 border border-${role.badgeColor}-100 dark:border-${role.badgeColor}-500/20`}>
+                        <Badge className={`bg-${role.badgeColor}-50 text-${role.badgeColor}-700 dark:bg-${role.badgeColor}-500/10 dark:text-${role.badgeColor}-400 border border-${role.badgeColor}-100 dark:border-${role.badgeColor}-500/20 mb-2`}>
                           {role.name}
                         </Badge>
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button onClick={(e) => { e.stopPropagation(); deleteRole(role.id); }} className="p-1 text-zinc-400 hover:text-red-500"><Trash2 size={12} /></button>
                         </div>
                       </div>
-                      <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-4">
+                      {role.description && (
+                        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 line-clamp-2 mb-3 h-8">
+                          {role.description}
+                        </p>
+                      )}
+                      <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mb-4">
                         {role.permissions.length === 1 && role.permissions[0] === 'all' ? 'Administrative Access' : `${role.permissions.length} Custom Permissions`}
                       </p>
                       <button className="text-[10px] font-bold text-zinc-400 hover:text-blue-600 uppercase tracking-widest flex items-center gap-1 transition-colors">
@@ -939,25 +952,35 @@ export const SettingsPage: React.FC = () => {
               placeholder="e.g. Statistician"
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest ml-1">Assigned Role</label>
-              <select
-                value={userFormData.role}
-                onChange={e => setUserFormData({ ...userFormData, role: e.target.value })}
-                className="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500/20"
-              >
-                {roles.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
-              </select>
+          <div className="space-y-2">
+            <label className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest ml-1">Assigned Roles</label>
+            <div className="grid grid-cols-2 gap-2 p-4 rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 max-h-40 overflow-y-auto">
+              {roles.map(r => (
+                <label key={r.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white dark:hover:bg-zinc-800 transition-colors cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={userFormData.roles.includes(r.name)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setUserFormData({ ...userFormData, roles: [...userFormData.roles, r.name] });
+                      } else {
+                        setUserFormData({ ...userFormData, roles: userFormData.roles.filter(role => role !== r.name) });
+                      }
+                    }}
+                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-tight">{r.name}</span>
+                </label>
+              ))}
             </div>
-            <Input
-              label="Password"
-              type="password"
-              value={userFormData.password}
-              onChange={e => setUserFormData({ ...userFormData, password: e.target.value })}
-              placeholder={editingUserId ? "Leave empty to keep" : "System Password"}
-            />
           </div>
+          <Input
+            label="Password"
+            type="password"
+            value={userFormData.password}
+            onChange={e => setUserFormData({ ...userFormData, password: e.target.value })}
+            placeholder={editingUserId ? "Leave empty to keep" : "System Password"}
+          />
         </div>
       </Modal>
 
@@ -1014,6 +1037,17 @@ export const SettingsPage: React.FC = () => {
             </div>
           </div>
 
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest ml-1">Role Description</label>
+            <textarea
+              value={roleFormData.description}
+              onChange={e => setRoleFormData({ ...roleFormData, description: e.target.value })}
+              rows={2}
+              className="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500/20 resize-none"
+              placeholder="Briefly describe the responsibilities of this role..."
+            />
+          </div>
+
           <div className="p-6 rounded-3xl bg-zinc-100/50 dark:bg-zinc-900/50 border border-dashed border-zinc-200 dark:border-zinc-800 flex flex-col items-center justify-center gap-4">
             <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Badge Preview</p>
             <div className={`
@@ -1029,45 +1063,63 @@ export const SettingsPage: React.FC = () => {
             </p>
           </div>
 
-          <div className="space-y-3">
-            <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Access Permissions</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {[
-                { id: 'records.view', label: 'View Records' },
-                { id: 'records.edit', label: 'Modify Records' },
-                { id: 'supply.view', label: 'View Inventory' },
-                { id: 'supply.edit', label: 'Manage Stock' },
-                { id: 'supply.approve', label: 'Approve Requests' },
-                { id: 'settings.global', label: 'System Settings' },
-              ].map(perm => (
-                <label key={perm.id} className="flex items-center gap-3 p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 cursor-pointer hover:border-blue-500 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={roleFormData.permissions.includes('all') || roleFormData.permissions.includes(perm.id)}
-                    onChange={(e) => {
-                      const checked = e.target.checked;
-                      if (checked) {
-                        setRoleFormData({ ...roleFormData, permissions: [...roleFormData.permissions, perm.id] });
-                      } else {
-                        setRoleFormData({ ...roleFormData, permissions: roleFormData.permissions.filter(p => p !== perm.id && p !== 'all') });
-                      }
-                    }}
-                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-tight">{perm.label}</span>
-                </label>
-              ))}
-              <label className="flex items-center gap-3 p-3 rounded-xl bg-blue-50 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-500/20 cursor-pointer sm:col-span-2">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Access Permissions</h4>
+              <label className="flex items-center gap-2 cursor-pointer group">
                 <input
                   type="checkbox"
                   checked={roleFormData.permissions.includes('all')}
                   onChange={(e) => {
                     setRoleFormData({ ...roleFormData, permissions: e.target.checked ? ['all'] : [] });
                   }}
-                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                  className="w-3 h-3 rounded text-blue-600 focus:ring-blue-500"
                 />
-                <span className="text-xs font-black text-blue-600 uppercase tracking-[0.1em]">Administrative Access (Global Control)</span>
+                <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest group-hover:underline">Super Admin Bypass</span>
               </label>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 max-h-[400px] overflow-y-auto pr-2 scrollbar-thin">
+              {Object.entries(PERMISSION_GROUPS).map(([group, perms]) => (
+                <div key={group} className="space-y-2">
+                  <div className="flex items-center gap-2 border-b border-zinc-100 dark:border-zinc-800 pb-1">
+                    <span className="text-[9px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">{group}</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {perms.map(perm => (
+                      <label key={perm} className={`
+                        flex items-center gap-3 p-2.5 rounded-xl border transition-all cursor-pointer
+                        ${roleFormData.permissions.includes('all') || roleFormData.permissions.includes(perm as Permission)
+                          ? 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/30'
+                          : 'bg-zinc-50 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700'}
+                      `}>
+                        <input
+                          type="checkbox"
+                          disabled={roleFormData.permissions.includes('all')}
+                          checked={roleFormData.permissions.includes('all') || roleFormData.permissions.includes(perm as Permission)}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            if (checked) {
+                              setRoleFormData({ ...roleFormData, permissions: [...roleFormData.permissions, perm as Permission] });
+                            } else {
+                              setRoleFormData({ ...roleFormData, permissions: roleFormData.permissions.filter(p => p !== perm && p !== 'all') });
+                            }
+                          }}
+                          className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                        />
+                        <div className="flex flex-col gap-0.5 pointer-events-none">
+                          <span className="text-[10px] font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-tight">
+                            {perm.split('.').pop()?.replace(/_/g, ' ')}
+                          </span>
+                          <span className="text-[9px] text-zinc-400 dark:text-zinc-500 leading-tight">
+                            {PERMISSION_DESCRIPTIONS[perm as Permission]}
+                          </span>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -1167,17 +1219,17 @@ export const SettingsPage: React.FC = () => {
             />
           </div>
         </div>
-      </Modal>
+      </Modal >
 
       {/* Dynamic Form Builder Modal */}
-      <Modal
+      < Modal
         isOpen={isBuilderOpen}
         onClose={() => setIsBuilderOpen(false)}
         title={`Schema Designer: ${docTypes.find(d => d.id === selectedDocId)?.name}`}
         footer={
-          <div className="flex gap-2">
+          < div className="flex gap-2" >
             <Button variant="primary" className="px-6 rounded-xl" onClick={() => setIsBuilderOpen(false)}>Done</Button>
-          </div>
+          </div >
         }
       >
         <div className="space-y-6">
@@ -1282,7 +1334,7 @@ export const SettingsPage: React.FC = () => {
             </Button>
           </div>
         </div>
-      </Modal>
-    </div>
+      </Modal >
+    </div >
   );
 };

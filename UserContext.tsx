@@ -1,9 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { Permission } from './types';
 
 export interface Role {
     id: string;
     name: string;
-    permissions: string[];
+    description: string;
+    permissions: Permission[];
     badgeColor: string;
 }
 
@@ -11,7 +13,7 @@ export interface User {
     id: string;
     name: string;
     email: string;
-    role: string;
+    roles: string[];
     gender: string;
     position: string;
     password?: string;
@@ -39,25 +41,67 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [users, setUsers] = useState<User[]>(() => {
         const saved = localStorage.getItem('aurora_users');
-        return saved ? JSON.parse(saved) : [
-            { id: '1', name: 'Admin One', email: 'admin.aurora@psa.gov.ph', role: 'Super Admin', gender: 'Female', position: 'Provincial Admin', lastAccess: 'Just now', signature: '' },
-            { id: '2', name: 'Reg Clerk', email: 'clerk.aurora@psa.gov.ph', role: 'Registry Editor', gender: 'Male', position: 'Registration Clerk', lastAccess: '2h ago', signature: '' },
-            { id: '3', name: 'Supply Mgr', email: 'supply.aurora@psa.gov.ph', role: 'Inventory Lead', gender: 'Female', position: 'Supply Officer', lastAccess: 'Yesterday', signature: '' },
+        const initialUsers = saved ? JSON.parse(saved) : [
+            { id: '1', name: 'Admin One', email: 'admin.aurora@psa.gov.ph', roles: ['Super Admin'], gender: 'Female', position: 'Provincial Admin', lastAccess: 'Just now', signature: '' },
+            { id: '2', name: 'Reg Clerk', email: 'clerk.aurora@psa.gov.ph', roles: ['Registry Editor'], gender: 'Male', position: 'Registration Clerk', lastAccess: '2h ago', signature: '' },
+            { id: '3', name: 'Supply Mgr', email: 'supply.aurora@psa.gov.ph', roles: ['Inventory Lead'], gender: 'Female', position: 'Supply Officer', lastAccess: 'Yesterday', signature: '' },
         ];
+
+        // Migration: convert single role to roles array if needed
+        return initialUsers.map((u: any) => {
+            if (u.role && !u.roles) {
+                return { ...u, roles: [u.role] };
+            }
+            return u;
+        });
     });
 
     const [roles, setRoles] = useState<Role[]>(() => {
-        const saved = localStorage.getItem('aurora_roles');
-        return saved ? JSON.parse(saved) : [
-            { id: 'sa', name: 'Super Admin', permissions: ['all'], badgeColor: 'blue' },
-            { id: 're', name: 'Registry Editor', permissions: ['records.view', 'records.edit'], badgeColor: 'emerald' },
-            { id: 'il', name: 'Inventory Lead', permissions: ['supply.view', 'supply.edit', 'supply.approve'], badgeColor: 'amber' },
+        const savedRoles = localStorage.getItem('aurora_roles');
+        const initialRoles: Role[] = [
+            {
+                id: '1',
+                name: 'Super Admin',
+                description: 'Full system access with the ability to manage all users, roles, and global configurations.',
+                permissions: ['all'],
+                badgeColor: 'blue'
+            },
+            {
+                id: '2',
+                name: 'Registry Editor',
+                description: 'Responsible for creating and maintaining civil registry records (Birth, Marriage, Death certificates).',
+                permissions: ['dashboard.view', 'records.view', 'records.edit', 'records.export'],
+                badgeColor: 'emerald'
+            },
+            {
+                id: '3',
+                name: 'Inventory Lead',
+                description: 'Manages office supplies, stock levels, and processes acquisition/issue requests.',
+                permissions: ['dashboard.view', 'supply.view', 'supply.request', 'supply.approve', 'supply.inventory', 'supply.export'],
+                badgeColor: 'amber'
+            },
+            {
+                id: '4',
+                name: 'Viewer',
+                description: 'Read-only access to records and dashboards for general inquiry purposes.',
+                permissions: ['dashboard.view', 'records.view', 'supply.view'],
+                badgeColor: 'slate'
+            }
         ];
+        return savedRoles ? JSON.parse(savedRoles) : initialRoles;
     });
 
     const [currentUser, setCurrentUser] = useState<User | null>(() => {
         const saved = localStorage.getItem('aurora_session');
-        return saved ? JSON.parse(saved) : users[0]; // Default to first user for demo
+        if (saved) {
+            const user = JSON.parse(saved);
+            // Migration for session user
+            if (user && user.role && !user.roles) {
+                return { ...user, roles: [user.role] };
+            }
+            return user;
+        }
+        return users[0]; // Default to first user for demo
     });
 
     useEffect(() => {

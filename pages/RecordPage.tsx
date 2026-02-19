@@ -29,6 +29,8 @@ import {
 } from 'lucide-react';
 import { Card, Badge, Button, Tabs, Modal, Input } from '../components/ui';
 import { useDialog } from '../DialogContext';
+import { useRbac } from '../RbacContext';
+import { PermissionGate } from '../components/PermissionGate';
 
 interface AuditLog {
   action: string;
@@ -49,6 +51,7 @@ interface RegistryRecord {
 
 export const RecordPage: React.FC = () => {
   const { alert, confirm } = useDialog();
+  const { can } = useRbac();
   const [activeTab, setActiveTab] = useState('history');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
@@ -242,11 +245,21 @@ export const RecordPage: React.FC = () => {
         </div>
 
         <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
-          <Tabs tabs={[{ id: 'history', label: 'History', icon: History }, { id: 'report', label: 'Report', icon: FileBarChart }]} activeTab={activeTab} onTabChange={setActiveTab} className="border-b-0" />
+          <Tabs
+            tabs={[
+              { id: 'history', label: 'History', icon: History, permission: 'records.view' as const },
+              { id: 'report', label: 'Report', icon: FileBarChart, permission: 'settings.data' as const }
+            ].filter(tab => !tab.permission || can(tab.permission))}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            className="border-b-0"
+          />
           <div className="hidden sm:block h-8 w-px bg-zinc-200 dark:bg-zinc-800 mx-2 shrink-0" />
-          <Button variant="blue" className="w-full sm:w-auto shadow-lg shadow-blue-500/20" onClick={openAddModal}>
-            <Plus size={16} className="mr-2" /> New Entry
-          </Button>
+          <PermissionGate requires="records.edit">
+            <Button variant="blue" className="w-full sm:w-auto shadow-lg shadow-blue-500/20" onClick={openAddModal}>
+              <Plus size={16} className="mr-2" /> New Entry
+            </Button>
+          </PermissionGate>
         </div>
       </div>
 
@@ -292,8 +305,12 @@ export const RecordPage: React.FC = () => {
                       <td className="py-4 px-3 sm:px-0 text-[13px] font-bold tracking-tight">{row.name}</td>
                       <td className="py-4 px-3 sm:px-0 text-right">
                         <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => openEditModal(row)} className="p-2 text-zinc-400 hover:text-blue-500" title="Edit Record"><Edit2 size={14} /></button>
-                          <button onClick={() => deleteRecord(row.reg)} className="p-2 text-zinc-400 hover:text-red-500" title="Delete Record"><Trash2 size={14} /></button>
+                          <PermissionGate requires="records.edit">
+                            <button onClick={() => openEditModal(row)} className="p-2 text-zinc-400 hover:text-blue-500" title="Edit Record"><Edit2 size={14} /></button>
+                          </PermissionGate>
+                          <PermissionGate requires="records.delete">
+                            <button onClick={() => deleteRecord(row.reg)} className="p-2 text-zinc-400 hover:text-red-500" title="Delete Record"><Trash2 size={14} /></button>
+                          </PermissionGate>
                         </div>
                       </td>
                     </tr>

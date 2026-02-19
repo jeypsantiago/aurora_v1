@@ -44,3 +44,57 @@ export interface SupplySignatures {
   receiverDesignation?: string;
   receiverSigUrl?: string;
 }
+
+export type Permission =
+  | 'all'
+  | 'dashboard.view'
+  | 'records.view' | 'records.edit' | 'records.delete' | 'records.export'
+  | 'supply.view' | 'supply.request' | 'supply.approve' | 'supply.export' | 'supply.inventory'
+  | 'property.view' | 'property.edit'
+  | 'gmail.view' | 'gmail.send'
+  | 'settings.view' | 'settings.users' | 'settings.roles' | 'settings.data';
+
+export const PERMISSION_GROUPS = {
+  'Dashboard': ['dashboard.view'],
+  'Records': ['records.view', 'records.edit', 'records.delete', 'records.export'],
+  'Supply': ['supply.view', 'supply.request', 'supply.approve', 'supply.export', 'supply.inventory'],
+  'Property': ['property.view', 'property.edit'],
+  'Gmail': ['gmail.view', 'gmail.send'],
+  'Settings': ['settings.view', 'settings.users', 'settings.roles', 'settings.data'],
+} as const;
+
+export const NAV_PERMISSION_MAP: Record<string, Permission> = {
+  '/dashboard': 'dashboard.view',
+  '/records': 'records.view',
+  '/supplies': 'supply.view',
+  '/properties': 'property.view',
+  '/gmail': 'gmail.view',
+  '/settings': 'settings.view',
+};
+
+export const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
+  'all': 'Full administrative access to all system modules and settings.',
+  'dashboard.view': 'View the system dashboard, statistics, and overview metrics.',
+
+  'records.view': 'Browse and search through registry records and archives.',
+  'records.edit': 'Create new entry and modify existing registry records.',
+  'records.delete': 'Remove registry records from the system (Requires high auth).',
+  'records.export': 'Generate and download official PDF reports of registry data.',
+
+  'supply.view': 'Browse supply items and view your own request history.',
+  'supply.request': 'Submit new requests for supplies and equipment.',
+  'supply.approve': 'Verify and approve supply requests from other staff.',
+  'supply.export': 'Generate RIS (Requisition and Issue Slip) documents.',
+  'supply.inventory': 'Manage warehouse stock levels, categories, and item details.',
+
+  'property.view': 'View property and asset listings.',
+  'property.edit': 'Update property details and assignments.',
+
+  'gmail.view': 'Access the integrated Gmail Hub to read messages.',
+  'gmail.send': 'Compose and send emails through the Gmail Hub.',
+
+  'settings.view': 'Access the settings panel.',
+  'settings.users': 'Manage system user accounts and profiles.',
+  'settings.roles': 'Create and configure system roles/permission sets.',
+  'settings.data': 'Access high-level data management and reporting tools.',
+};
