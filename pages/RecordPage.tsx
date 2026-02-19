@@ -24,7 +24,8 @@ import {
   ArrowDownToLine,
   FileBarChart,
   Loader2,
-  Zap
+  Zap,
+  ArrowRight
 } from 'lucide-react';
 import { Card, Badge, Button, Tabs, Modal, Input } from '../components/ui';
 import { useDialog } from '../DialogContext';
@@ -278,7 +279,14 @@ export const RecordPage: React.FC = () => {
                 <tbody className="divide-y divide-zinc-50 dark:divide-zinc-800/50">
                   {filteredRecords.map((row) => (
                     <tr key={row.reg} className="group hover:bg-zinc-50 dark:hover:bg-zinc-900/40">
-                      <td className="py-4 px-3 sm:px-0 font-mono text-[13px] font-black text-blue-600 cursor-pointer hover:underline tracking-tighter" onClick={() => openEditModal(row)}>{row.reg}</td>
+                      <td className="py-4 px-3 sm:px-0 cursor-pointer group/reg" onClick={() => openEditModal(row)}>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[13px] font-black text-zinc-900 dark:text-white tracking-tight group-hover/reg:text-blue-600 transition-colors">{row.reg}</span>
+                          <div className="p-1 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-400 group-hover/reg:bg-blue-50 group-hover/reg:text-blue-600 transition-all">
+                            <ArrowRight size={10} />
+                          </div>
+                        </div>
+                      </td>
                       <td className="py-4 px-3 sm:px-0 text-[13px] text-zinc-500 font-medium">{row.date}</td>
                       <td className="py-4 px-3 sm:px-0 text-[13px] font-black text-zinc-900 dark:text-white uppercase tracking-tight">{row.type}</td>
                       <td className="py-4 px-3 sm:px-0 text-[13px] font-bold tracking-tight">{row.name}</td>
@@ -543,22 +551,22 @@ export const RecordPage: React.FC = () => {
       <Modal
         isOpen={isSuccessModalOpen}
         onClose={() => setIsSuccessModalOpen(false)}
-        title="Official Registry Acknowledgement"
-        footer={<Button variant="primary" className="w-full rounded-2xl h-14 text-xs font-black uppercase tracking-[0.2em]" onClick={() => setIsSuccessModalOpen(false)}>Complete Registration</Button>}
+        title="Official Registry Certificate Issued"
+        footer={<Button variant="blue" className="w-full rounded-2xl h-14 text-[11px] font-black uppercase tracking-[0.3em] shadow-lg shadow-blue-500/20" onClick={() => setIsSuccessModalOpen(false)}>Acknowledge & Complete</Button>}
       >
-        <div className="flex flex-col items-center py-4">
-          <div className="relative mb-10">
-            <div className="absolute inset-0 bg-emerald-500 blur-3xl opacity-20 animate-pulse"></div>
-            <div className="w-24 h-24 bg-white dark:bg-zinc-900 rounded-full flex items-center justify-center text-emerald-600 relative z-10 border-[6px] border-emerald-50 dark:border-zinc-800 shadow-2xl scale-110">
-              <ShieldCheck size={48} strokeWidth={2.5} />
+        <div className="flex flex-col items-center py-1">
+          <div className="relative mb-3">
+            <div className="absolute inset-0 bg-emerald-500 blur-[25px] opacity-10 animate-pulse"></div>
+            <div className="w-14 h-14 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-600 relative z-10 border border-emerald-100/50 dark:border-emerald-500/20 shadow-lg">
+              <ShieldCheck size={24} strokeWidth={2.5} />
             </div>
           </div>
 
-          <h4 className="text-2xl font-black text-zinc-900 dark:text-white uppercase tracking-tighter mb-1">Record Locked</h4>
-          <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-[0.3em] mb-10">Philippine Statistics Authority • Aurora</p>
+          <h4 className="text-base font-black text-zinc-900 dark:text-white uppercase tracking-tighter mb-0.5">Entry Authenticated</h4>
+          <p className="text-[7px] text-zinc-400 font-black uppercase tracking-[0.4em] mb-4">Aurora Provincial Statistical Hub</p>
 
-          {/* Professional Receipt Design */}
-          <div className="w-full bg-white dark:bg-[#0c0c0e] border-2 border-zinc-200 dark:border-zinc-800 rounded-[48px] p-8 sm:p-10 shadow-inner relative overflow-hidden group">
+          {/* Professional Certificate Design */}
+          <div className="w-full bg-white dark:bg-[#0c0c0e] border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-[28px] p-4 sm:p-5 shadow-inner relative overflow-hidden group">
             {/* Holographic Security Seal Simulation */}
             <div className="absolute top-8 right-8 w-24 h-24 pointer-events-none opacity-[0.03] dark:opacity-[0.05] group-hover:opacity-10 transition-opacity">
               <div className="w-full h-full rounded-full border-8 border-dashed border-blue-600 animate-spin-slow"></div>
@@ -567,66 +575,66 @@ export const RecordPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end border-b-2 border-dashed border-zinc-200 dark:border-zinc-800 pb-8 mb-8 gap-4">
-              <div className="space-y-2">
-                <span className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em] block">Official Registry Number</span>
-                <span className="text-3xl sm:text-4xl font-mono font-black text-blue-600 dark:text-blue-400 tracking-tighter leading-none">{lastCreated?.reg}</span>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end border-b-2 border-dashed border-zinc-200 dark:border-zinc-800 pb-4 mb-4 gap-3">
+              <div className="space-y-0.5">
+                <span className="text-[7px] font-black text-zinc-400 uppercase tracking-[0.2em] block">Official Registry Number</span>
+                <span className="text-xl sm:text-2xl font-black text-blue-600 dark:text-blue-400 tracking-tighter leading-none">{lastCreated?.reg}</span>
               </div>
-              <div className="flex flex-col items-end gap-2">
-                <Badge variant="success" className="px-4 py-1.5 ring-8 ring-emerald-500/5 text-[10px]">VALIDATED</Badge>
-                <span className="text-[9px] font-bold text-emerald-600/60 dark:text-emerald-400/40 uppercase tracking-widest">{new Date().toLocaleDateString()}</span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-x-8 gap-y-8 mb-8">
-              <div className="space-y-1">
-                <span className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em]">Document Class</span>
-                <p className="text-sm sm:text-base font-bold text-zinc-900 dark:text-white flex items-center gap-2">
-                  <FileText size={14} className="text-zinc-400" /> {lastCreated?.type}
-                </p>
-              </div>
-              <div className="space-y-1">
-                <span className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em]">Registry Date</span>
-                <p className="text-sm sm:text-base font-bold text-zinc-900 dark:text-white flex items-center gap-2">
-                  <Calendar size={14} className="text-zinc-400" /> {lastCreated?.date}
-                </p>
+              <div className="flex flex-col items-end gap-1">
+                <Badge variant="success" className="px-2.5 py-0.5 ring-4 ring-emerald-500/5 text-[8px]">VALIDATED</Badge>
+                <span className="text-[7px] font-bold text-emerald-600/60 dark:text-emerald-400/40 uppercase tracking-widest">{new Date().toLocaleDateString()}</span>
               </div>
             </div>
 
-            <div className="space-y-1 border-t border-zinc-100 dark:border-zinc-800 pt-8 mb-8">
-              <span className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em]">Primary Registered Subject</span>
-              <p className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white tracking-tight leading-tight uppercase">{lastCreated?.name}</p>
+            <div className="grid grid-cols-2 gap-x-5 gap-y-4 mb-4">
+              <div className="space-y-0.5">
+                <span className="text-[7px] font-black text-zinc-400 uppercase tracking-[0.2em]">Document Class</span>
+                <p className="text-[11px] sm:text-xs font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
+                  <FileText size={10} className="text-zinc-400" /> {lastCreated?.type}
+                </p>
+              </div>
+              <div className="space-y-0.5">
+                <span className="text-[7px] font-black text-zinc-400 uppercase tracking-[0.2em]">Registry Date</span>
+                <p className="text-[11px] sm:text-xs font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
+                  <Calendar size={10} className="text-zinc-400" /> {lastCreated?.date}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-0.5 border-t border-zinc-100 dark:border-zinc-800 pt-4 mb-4">
+              <span className="text-[7px] font-black text-zinc-400 uppercase tracking-[0.2em]">Primary Registered Subject</span>
+              <p className="text-base sm:text-lg font-black text-zinc-900 dark:text-white tracking-tight leading-tight uppercase">{lastCreated?.name}</p>
             </div>
 
             {/* Submission Metadata Section */}
-            <div className="pt-6 border-t border-zinc-100 dark:border-zinc-800">
-              <h5 className="text-[10px] font-black text-blue-600/60 dark:text-blue-400/40 uppercase tracking-[0.25em] mb-4">Registry Details Summary</h5>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-10">
+            <div className="pt-3.5 border-t border-zinc-100 dark:border-zinc-800">
+              <h5 className="text-[9px] font-black text-blue-600/60 dark:text-blue-400/40 uppercase tracking-[0.25em] mb-3">Registry Details Summary</h5>
+              <div className="grid grid-cols-2 gap-y-3 gap-x-6">
                 {lastCreated && Object.entries(lastCreated.details).map(([key, val]) => (
                   <div key={key} className="space-y-1">
-                    <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-tight">{key}</span>
-                    <p className="text-[11px] font-bold text-zinc-700 dark:text-zinc-300 truncate">{String(val)}</p>
+                    <span className="text-[9.5px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-tight block leading-none">{key}</span>
+                    <p className="text-[13px] font-black text-zinc-900 dark:text-zinc-100 truncate leading-none">{String(val)}</p>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="mt-10 pt-8 border-t border-zinc-100 dark:border-zinc-800 relative">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 bg-white dark:bg-[#0c0c0e]">
-                <CheckCircle2 size={20} className="text-emerald-500" />
+            <div className="mt-5 pt-4 border-t border-zinc-100 dark:border-zinc-800 relative">
+              <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 px-2 bg-white dark:bg-[#0c0c0e]">
+                <CheckCircle2 size={12} className="text-emerald-500" />
               </div>
-              <p className="text-[10px] italic text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed text-center px-4">
-                This record has been officially verified and locked in the PSA Aurora Provincial database. Unauthorized modification is strictly prohibited under the Data Privacy Act of 2012.
+              <p className="text-[7px] italic text-zinc-400 dark:text-zinc-500 font-medium leading-relaxed text-center px-4">
+                Verified and locked in the PSA Aurora Provincial database.
               </p>
             </div>
           </div>
 
-          <div className="mt-8 flex gap-3 w-full">
-            <Button variant="outline" className="flex-1 h-14 text-[10px] font-black uppercase tracking-widest rounded-3xl active:scale-95" onClick={() => window.print()}>
-              <Printer size={16} className="mr-2" /> Print Slip
+          <div className="mt-4 flex gap-2 w-full">
+            <Button variant="outline" className="flex-1 h-9 text-[8px] font-black uppercase tracking-widest rounded-xl" onClick={() => window.print()}>
+              <Printer size={12} className="mr-1.5" /> Print
             </Button>
-            <Button variant="outline" className="flex-1 h-14 text-[10px] font-black uppercase tracking-widest rounded-3xl active:scale-95">
-              <Download size={16} className="mr-2" /> Save PDF
+            <Button variant="outline" className="flex-1 h-9 text-[8px] font-black uppercase tracking-widest rounded-xl">
+              <Download size={12} className="mr-1.5" /> Download
             </Button>
           </div>
         </div>

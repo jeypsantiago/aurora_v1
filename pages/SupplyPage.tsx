@@ -69,12 +69,12 @@ const RequestStatusTimeline = ({ status, isWide = false }: { status: RequestStat
     { label: 'For Verification', icon: FileCheck, color: 'blue' },
     { label: 'Awaiting Approval', icon: Fingerprint, color: 'amber' },
     { label: 'For Issuance', icon: Package, color: 'indigo' },
-    { label: 'To Receive', icon: ArrowDownToLine, color: 'emerald' },
-    { label: 'History', icon: CheckCircle2, color: 'zinc' }
+    { label: 'To Receive', icon: ArrowDownToLine, color: 'emerald' }
   ];
 
   const getCurrentStepIndex = () => {
     if (status === 'Rejected') return -1;
+    if (status === 'History') return steps.length;
     return steps.findIndex(s => s.label === status);
   };
 
@@ -679,6 +679,12 @@ export const SupplyPage: React.FC = () => {
                           </button>
                           <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-800 mx-1" />
                           <RequestStatusTimeline status={req.status} />
+                          {req.status === 'History' && (
+                            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 items-center animate-in fade-in zoom-in duration-300">
+                              <CheckCircle2 size={10} strokeWidth={3} />
+                              <span className="text-[8px] font-black uppercase tracking-widest">Fulfilled</span>
+                            </div>
+                          )}
                         </div>
                         <div className="flex items-center gap-2 mt-2">
                           <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">{req.date} • {req.items.length} items</p>
@@ -756,6 +762,12 @@ export const SupplyPage: React.FC = () => {
                           </button>
                           <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-800 mx-1" />
                           <RequestStatusTimeline status={req.status} />
+                          {req.status === 'History' && (
+                            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 items-center animate-in fade-in zoom-in duration-300">
+                              <CheckCircle2 size={10} strokeWidth={3} />
+                              <span className="text-[8px] font-black uppercase tracking-widest">Fulfilled</span>
+                            </div>
+                          )}
                         </div>
                         <div className="flex items-center gap-2 mt-2">
                           <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">{req.requester} • {req.date}</p>
@@ -957,88 +969,116 @@ export const SupplyPage: React.FC = () => {
         title={`Requisition Details: ${selectedRequest?.id}`}
         footer={
           <div className="flex gap-2 w-full">
-            <Button variant="ghost" className="flex-1" onClick={() => { setIsDetailModalOpen(false); setSelectedRequest(null); }}>Discard Changes</Button>
-            <Button variant="blue" className="flex-1 uppercase font-black text-[10px] tracking-widest" onClick={saveRequestModification}>Update Quantities</Button>
+            <Button variant="ghost" className="flex-1" onClick={() => { setIsDetailModalOpen(false); setSelectedRequest(null); }}>
+              {selectedRequest?.status === 'For Verification' ? 'Discard Changes' : 'Close'}
+            </Button>
+            {selectedRequest?.status === 'For Verification' && (
+              <Button variant="blue" className="flex-[2] uppercase font-black text-[10px] tracking-widest shadow-lg shadow-blue-500/20" onClick={saveRequestModification}>Update Quantities</Button>
+            )}
           </div>
         }
       >
-        <div className="space-y-6">
-          {/* Timeline Section */}
-          <div className="px-6 py-4 bg-zinc-50/50 dark:bg-zinc-900/30 rounded-3xl border border-zinc-100 dark:border-zinc-800/50 mx-4">
-            <RequestStatusTimeline status={selectedRequest?.status || 'For Verification'} isWide={true} />
-          </div>
+        {selectedRequest && (
+          <div className="space-y-6">
+            {selectedRequest.status === 'History' && (
+              <div className="mx-4 p-4 bg-emerald-50 dark:bg-emerald-500/5 border-2 border-dashed border-emerald-100 dark:border-emerald-500/20 rounded-3xl flex flex-col items-center gap-3 text-center animate-in fade-in zoom-in duration-500">
+                <div className="w-12 h-12 bg-white dark:bg-zinc-950 rounded-2xl flex items-center justify-center text-emerald-500 shadow-lg shadow-emerald-500/10 border border-emerald-100 dark:border-emerald-900/40">
+                  <CheckCircle2 size={24} strokeWidth={2.5} className="animate-in zoom-in spin-in-12 duration-700" />
+                </div>
+                <div>
+                  <div className="inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-500 text-white text-[9px] font-black uppercase tracking-widest mb-1.5 shadow-md shadow-emerald-500/20">
+                    Request Fulfilled
+                  </div>
+                  <p className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400">
+                    This requisition has been successfully fulfilled and the items have been received.
+                  </p>
+                </div>
+              </div>
+            )}
 
-          <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800">
-            <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">Request Origin</h4>
-            <div className="flex justify-between items-center">
-              <p className="text-sm font-bold">{selectedRequest?.requester}</p>
-              <RequestBadge status={selectedRequest?.status || 'For Verification'} />
+            <div className="px-6 py-4 bg-zinc-50/50 dark:bg-zinc-900/30 rounded-3xl border border-zinc-100 dark:border-zinc-800/50 mx-4">
+              <RequestStatusTimeline status={selectedRequest.status} isWide={true} />
             </div>
-            <p className="text-xs text-zinc-500 mt-2 italic leading-relaxed">"{selectedRequest?.purpose}"</p>
-          </div>
 
-          <div className="space-y-3">
-            <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Requested Items List</h4>
-            <div className="overflow-x-auto -mx-6 px-6">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em] border-b border-zinc-100 dark:border-zinc-800/50">
-                    <th className="pb-3 pr-4">Item (Unit)</th>
-                    <th className="pb-3 text-center">Qty</th>
-                    <th className="pb-3 text-center">Phys.</th>
-                    <th className="pb-3 text-center">Avail.</th>
-                    <th className="pb-3 text-center">Pend.</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-50 dark:divide-zinc-800/30">
-                  {selectedRequest?.items.map(reqItem => {
-                    const inv = inventory.find(i => i.id === reqItem.id);
-                    if (!inv) return null;
-                    return (
-                      <tr key={reqItem.id} className="group">
-                        <td className="py-3 pr-4">
-                          <div className="flex flex-col">
-                            <span className="text-[11px] font-bold text-zinc-900 dark:text-white truncate max-w-[120px]">{reqItem.name}</span>
-                            <span className="text-[8px] text-zinc-400 font-bold uppercase">{reqItem.unit}</span>
-                          </div>
-                        </td>
-                        <td className="py-3">
-                          <div className="flex items-center justify-center gap-1.5">
-                            <button onClick={() => updateSelectedRequestQty(reqItem.id, -1)} className="w-5 h-5 rounded-md bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-zinc-400"><Minus size={10} /></button>
-                            <span className="text-[11px] font-black w-4 text-center">{reqItem.qty}</span>
-                            <button onClick={() => updateSelectedRequestQty(reqItem.id, 1)} className="w-5 h-5 rounded-md bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-zinc-400"><Plus size={10} /></button>
-                          </div>
-                        </td>
-                        <td className="py-3 text-[11px] font-bold text-zinc-600 text-center">{inv.physicalQty}</td>
-                        <td className="py-3 text-[11px] font-black text-blue-600 text-center">{inv.physicalQty - inv.pendingQty}</td>
-                        <td className="py-3 text-[11px] font-bold text-amber-500 text-center">{inv.pendingQty}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+            <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800">
+              <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">Request Origin</h4>
+              <div className="flex justify-between items-center">
+                <p className="text-sm font-bold">{selectedRequest.requester}</p>
+                <RequestBadge status={selectedRequest.status} />
+              </div>
+              <p className="text-xs text-zinc-500 mt-2 italic leading-relaxed">"{selectedRequest.purpose}"</p>
+            </div>
+
+            <div className="space-y-3">
+              <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Requested Items List</h4>
+              <div className="overflow-x-auto -mx-6 px-6">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em] border-b border-zinc-100 dark:border-zinc-800/50">
+                      <th className="pb-3 pr-4">Item (Unit)</th>
+                      <th className="pb-3 text-center">Qty</th>
+                      <th className="pb-3 text-center">Phys.</th>
+                      <th className="pb-3 text-center">Avail.</th>
+                      <th className="pb-3 text-center">Pend.</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-50 dark:divide-zinc-800/30">
+                    {selectedRequest.items.map((reqItem) => {
+                      const inv = inventory.find(i => i.id === reqItem.id) || { name: reqItem.name, category: '-', unit: reqItem.unit, physicalQty: 0, pendingQty: 0, reorderPoint: 0 };
+                      return (
+                        <tr key={reqItem.id} className="group">
+                          <td className="py-3 pr-4">
+                            <div className="flex flex-col">
+                              <span className="text-[11px] font-bold text-zinc-900 dark:text-white">{inv.name}</span>
+                              <span className="text-[8px] text-zinc-400 font-bold uppercase">{inv.unit}</span>
+                            </div>
+                          </td>
+                          <td className="py-3">
+                            <div className="flex items-center justify-center gap-1.5">
+                              {selectedRequest.status === 'For Verification' ? (
+                                <>
+                                  <button onClick={() => updateSelectedRequestQty(reqItem.id, -1)} className="w-5 h-5 rounded-md bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-zinc-400 hover:text-blue-500 transition-colors"><Minus size={10} /></button>
+                                  <span className="text-[11px] font-black w-4 text-center">{reqItem.qty}</span>
+                                  <button onClick={() => updateSelectedRequestQty(reqItem.id, 1)} className="w-5 h-5 rounded-md bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-zinc-400 hover:text-blue-500 transition-colors"><Plus size={10} /></button>
+                                </>
+                              ) : (
+                                <span className="text-[11px] font-black w-4 text-center text-zinc-900 dark:text-white">{reqItem.qty}</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-3 text-[11px] font-bold text-zinc-600 text-center">{inv.physicalQty}</td>
+                          <td className="py-3 text-[11px] font-black text-blue-600 text-center">{inv.physicalQty - inv.pendingQty}</td>
+                          <td className="py-3 text-[11px] font-bold text-amber-500 text-center">{inv.pendingQty}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className={`p-3 rounded-xl flex gap-2 border ${selectedRequest.status === 'For Verification' ? 'bg-blue-50 dark:bg-blue-500/5 border-blue-100 dark:border-blue-500/20' : 'bg-amber-50 dark:bg-amber-500/5 border-amber-100 dark:border-amber-500/20'}`}>
+              <Settings2 size={14} className={selectedRequest.status === 'For Verification' ? 'text-blue-600 shrink-0' : 'text-amber-600 shrink-0'} />
+              <p className={`text-[9px] font-medium leading-relaxed ${selectedRequest.status === 'For Verification' ? 'text-blue-700 dark:text-blue-400' : 'text-amber-700 dark:text-amber-400'}`}>
+                {selectedRequest.status === 'For Verification'
+                  ? "Quantities can be modified during the verification phase. Changes will update pending stocks upon saving."
+                  : "This request has been verified and quantities are now locked for official processing."}
+              </p>
             </div>
           </div>
-
-          <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-500/20 flex gap-2">
-            <Settings2 size={14} className="text-blue-600 shrink-0" />
-            <p className="text-[9px] text-blue-700 dark:text-blue-400 font-medium">
-              Modified quantities will update the pending earmarks or physical stocks upon saving. Review available stock before approval.
-            </p>
-          </div>
-        </div>
+        )}
       </Modal>
 
       {/* NEW/EDIT ITEM MODAL */}
-      <Modal
+      < Modal
         isOpen={isNewItemModalOpen}
         onClose={() => setIsNewItemModalOpen(false)}
         title={editingItem ? "Edit Inventory Item" : "Register New Inventory Item"}
         footer={
-          <div className="flex gap-2">
+          < div className="flex gap-2" >
             <Button variant="ghost" onClick={() => setIsNewItemModalOpen(false)}>Cancel</Button>
             <Button variant="blue" onClick={handleSaveItem}>{editingItem ? "Update Item" : "Register Item"}</Button>
-          </div>
+          </div >
         }
       >
         <div className="space-y-4">
@@ -1083,18 +1123,18 @@ export const SupplyPage: React.FC = () => {
             </div>
           </div>
         </div>
-      </Modal>
+      </Modal >
 
       {/* IMPORT MODAL */}
-      <Modal
+      < Modal
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
         title="Import Stock from Excel"
         footer={
-          <div className="flex gap-2">
+          < div className="flex gap-2" >
             <Button variant="ghost" onClick={() => setIsImportModalOpen(false)}>Cancel</Button>
             <Button variant="blue" onClick={handleSimulatedImport}>Start Import</Button>
-          </div>
+          </div >
         }
       >
         <div className="space-y-6">
@@ -1125,18 +1165,18 @@ export const SupplyPage: React.FC = () => {
             </p>
           </div>
         </div>
-      </Modal>
+      </Modal >
 
       {/* CREATE REQUEST MODAL (THE CART) */}
-      <Modal
+      < Modal
         isOpen={isRequestModalOpen}
         onClose={() => setIsRequestModalOpen(false)}
         title="Supply Requisition Cart"
         footer={
-          <div className="flex gap-2 w-full">
+          < div className="flex gap-2 w-full" >
             <Button variant="ghost" className="flex-1" onClick={() => setIsRequestModalOpen(false)}>Cancel</Button>
             <Button variant="blue" className="flex-[2] h-14 uppercase font-black tracking-widest" onClick={handleSubmitRequest}>Submit Requisition</Button>
-          </div>
+          </div >
         }
       >
         <div className="space-y-6">
@@ -1189,7 +1229,7 @@ export const SupplyPage: React.FC = () => {
             />
           </div>
         </div>
-      </Modal>
-    </div>
+      </Modal >
+    </div >
   );
 };

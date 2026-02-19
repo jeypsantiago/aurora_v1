@@ -32,6 +32,7 @@ export const ProfilePage: React.FC = () => {
     // -- Signature Drawing Logic --
     const [signatureMode, setSignatureMode] = useState<'upload' | 'draw'>('upload');
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const avatarInputRef = useRef<HTMLInputElement>(null);
     const [isDrawing, setIsDrawing] = useState(false);
 
     // Initialize/Reset canvas when switching to draw mode
@@ -132,6 +133,19 @@ export const ProfilePage: React.FC = () => {
         }
     };
 
+    const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file && currentUser) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64 = reader.result as string;
+                updateUser(currentUser.id, { avatar: base64 });
+                alert("Profile picture updated successfully!");
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
     const saveDrawnSignature = () => {
         const canvas = canvasRef.current;
         if (!canvas || !currentUser) return;
@@ -176,10 +190,24 @@ export const ProfilePage: React.FC = () => {
                 <div className="relative flex flex-col md:flex-row items-center gap-8">
                     {/* Avatar Section */}
                     <div className="relative">
-                        <div className="w-32 h-32 rounded-[38px] bg-blue-600 flex items-center justify-center text-4xl font-black text-white shadow-2xl shadow-blue-500/30 border-4 border-white dark:border-zinc-900 group-hover:scale-105 transition-transform duration-500">
-                            {currentUser?.name.split(' ').map(n => n[0]).join('')}
+                        <input
+                            type="file"
+                            ref={avatarInputRef}
+                            onChange={handleAvatarUpload}
+                            accept="image/*"
+                            className="hidden"
+                        />
+                        <div className="w-32 h-32 rounded-[38px] bg-blue-600 flex items-center justify-center text-4xl font-black text-white shadow-2xl shadow-blue-500/30 border-4 border-white dark:border-zinc-900 group-hover:scale-105 transition-transform duration-500 overflow-hidden">
+                            {currentUser?.avatar ? (
+                                <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover" />
+                            ) : (
+                                currentUser?.name.split(' ').map(n => n[0]).join('')
+                            )}
                         </div>
-                        <button className="absolute bottom-1 right-1 p-2 bg-white dark:bg-zinc-800 rounded-2xl shadow-lg border border-zinc-100 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:text-blue-600 transition-colors">
+                        <button
+                            onClick={() => avatarInputRef.current?.click()}
+                            className="absolute bottom-1 right-1 p-2 bg-white dark:bg-zinc-800 rounded-2xl shadow-lg border border-zinc-100 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:text-blue-600 transition-colors"
+                        >
                             <Camera size={18} />
                         </button>
                     </div>
@@ -297,7 +325,7 @@ export const ProfilePage: React.FC = () => {
                         </div>
 
                         {signatureMode === 'upload' ? (
-                            <div className="relative aspect-video rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-dashed border-zinc-200 dark:border-zinc-800 flex flex-col items-center justify-center p-6 text-center group cursor-pointer hover:border-blue-500 transition-colors overflow-hidden">
+                            <div className="relative aspect-video rounded-2xl bg-white border border-dashed border-zinc-300 flex flex-col items-center justify-center p-6 text-center group cursor-pointer hover:border-blue-500 transition-colors overflow-hidden ring-4 ring-zinc-50 dark:ring-white/5">
                                 <input
                                     type="file"
                                     accept="image/*"
@@ -321,7 +349,7 @@ export const ProfilePage: React.FC = () => {
                                     <img src={currentUser.signature} alt="Digital Signature" className="h-full w-full object-contain p-2" />
                                 ) : (
                                     <>
-                                        <div className="p-4 bg-white dark:bg-zinc-800 rounded-3xl shadow-sm mb-4 border border-zinc-100 dark:border-zinc-700 text-zinc-400 group-hover:text-blue-500 transition-colors">
+                                        <div className="p-4 bg-zinc-50 rounded-3xl shadow-sm mb-4 border border-zinc-200 text-zinc-400 group-hover:text-blue-500 transition-colors">
                                             <Upload size={32} />
                                         </div>
                                         <p className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest leading-relaxed">
@@ -333,7 +361,7 @@ export const ProfilePage: React.FC = () => {
                             </div>
                         ) : (
                             <div className="flex flex-col gap-3">
-                                <div className="relative aspect-video rounded-2xl bg-white border-2 border-zinc-200 dark:border-zinc-700 overflow-hidden shadow-sm hover:shadow-md hover:border-blue-500/50 transition-all group">
+                                <div className="relative aspect-video rounded-2xl bg-white border-2 border-zinc-300 overflow-hidden shadow-sm hover:shadow-md hover:border-blue-500/50 transition-all group ring-4 ring-zinc-50 dark:ring-white/5">
                                     <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
                                         style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '16px 16px' }}
                                     />

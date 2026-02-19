@@ -44,10 +44,10 @@ const App: React.FC = () => {
 
                 {/* Protected Routes (Wrapped in Layout) */}
                 <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
-                <Route path="/civil-reg" element={<Layout><RecordPage /></Layout>} />
-                <Route path="/philsys" element={<Layout><SupplyPage /></Layout>} />
+                <Route path="/records" element={<Layout><RecordPage /></Layout>} />
+                <Route path="/supplies" element={<Layout><SupplyPage /></Layout>} />
                 <Route path="/gmail" element={<Layout><GmailHub /></Layout>} />
-                <Route path="/statistics" element={<Layout><PlaceholderPage title="Property & Assets" /></Layout>} />
+                <Route path="/properties" element={<Layout><PlaceholderPage title="Property & Assets" /></Layout>} />
                 <Route path="/office" element={<Layout><PlaceholderPage title="Office Information" /></Layout>} />
                 <Route path="/profile" element={<Layout><ProfilePage /></Layout>} />
                 <Route path="/settings" element={<Layout><SettingsPage /></Layout>} />
