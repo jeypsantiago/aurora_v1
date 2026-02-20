@@ -45,12 +45,33 @@ export interface SupplySignatures {
   receiverSigUrl?: string;
 }
 
+export interface EmploymentRecord {
+  id: string;
+  month: string;
+  serialNumber: string;
+  name: string;
+  surveyProject: string;
+  dateExecution: string;
+  duration: string;
+  focalPerson: string;
+  createdAt: string;
+}
+
+export interface EmploymentConfig {
+  prefix: string;
+  separator: string;
+  padding: number;
+  increment: number;
+  startNumber: number;
+}
+
 export type Permission =
   | 'all'
   | 'dashboard.view'
   | 'records.view' | 'records.edit' | 'records.delete' | 'records.export'
   | 'supply.view' | 'supply.request' | 'supply.approve' | 'supply.export' | 'supply.inventory'
   | 'property.view' | 'property.edit'
+  | 'employment.view' | 'employment.edit' | 'employment.delete' | 'employment.export'
   | 'gmail.view' | 'gmail.send'
   | 'settings.view' | 'settings.users' | 'settings.roles' | 'settings.data';
 
@@ -59,6 +80,7 @@ export const PERMISSION_GROUPS = {
   'Records': ['records.view', 'records.edit', 'records.delete', 'records.export'],
   'Supply': ['supply.view', 'supply.request', 'supply.approve', 'supply.export', 'supply.inventory'],
   'Property': ['property.view', 'property.edit'],
+  'Employment': ['employment.view', 'employment.edit', 'employment.delete', 'employment.export'],
   'Gmail': ['gmail.view', 'gmail.send'],
   'Settings': ['settings.view', 'settings.users', 'settings.roles', 'settings.data'],
 } as const;
@@ -68,6 +90,7 @@ export const NAV_PERMISSION_MAP: Record<string, Permission> = {
   '/records': 'records.view',
   '/supplies': 'supply.view',
   '/properties': 'property.view',
+  '/employment': 'employment.view',
   '/gmail': 'gmail.view',
   '/settings': 'settings.view',
 };
@@ -89,6 +112,11 @@ export const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
 
   'property.view': 'View property and asset listings.',
   'property.edit': 'Update property details and assignments.',
+
+  'employment.view': 'Browse and search through personnel employment contracts.',
+  'employment.edit': 'Add or edit new employee contracts.',
+  'employment.delete': 'Remove employment contract records.',
+  'employment.export': 'Generate and download Certificate of Employment (COE) PDFs.',
 
   'gmail.view': 'Access the integrated Gmail Hub to read messages.',
   'gmail.send': 'Compose and send emails through the Gmail Hub.',

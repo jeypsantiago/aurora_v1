@@ -9,6 +9,7 @@ import { SupplyPage } from './pages/SupplyPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { SettingsPage } from './pages/SettingsPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { EmploymentPage } from './pages/EmploymentPage';
 
 // Placeholder components for other routes
 interface PlaceholderPageProps {
@@ -52,6 +53,7 @@ const App: React.FC = () => {
                     <Route path="/dashboard" element={<Layout><ProtectedRoute requires="dashboard.view"><Dashboard /></ProtectedRoute></Layout>} />
                     <Route path="/records" element={<Layout><ProtectedRoute requires="records.view"><RecordPage /></ProtectedRoute></Layout>} />
                     <Route path="/supplies" element={<Layout><ProtectedRoute requires="supply.view"><SupplyPage /></ProtectedRoute></Layout>} />
+                    <Route path="/employment" element={<Layout><ProtectedRoute requires="employment.view"><EmploymentPage /></ProtectedRoute></Layout>} />
                     <Route path="/gmail" element={<Layout><ProtectedRoute requires="gmail.view"><GmailHub /></ProtectedRoute></Layout>} />
                     <Route path="/properties" element={<Layout><ProtectedRoute requires="property.view"><PlaceholderPage title="Property & Assets" /></ProtectedRoute></Layout>} />
                     <Route path="/office" element={<Layout><ProtectedRoute requires="dashboard.view"><PlaceholderPage title="Office Information" /></ProtectedRoute></Layout>} />

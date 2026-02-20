@@ -5,7 +5,8 @@ import {
     Package,
     Building2,
     Mail,
-    Settings
+    Settings,
+    Briefcase
 } from 'lucide-react';
 import { useUsers } from './UserContext';
 import { Permission, NAV_PERMISSION_MAP } from './types';
@@ -31,6 +32,7 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, requiredPermission: 'dashboard.view' },
     { label: 'Records', href: '/records', icon: FileText, requiredPermission: 'records.view' },
     { label: 'Supplies', href: '/supplies', icon: Package, requiredPermission: 'supply.view' },
+    { label: 'Employment', href: '/employment', icon: Briefcase, requiredPermission: 'employment.view' },
     { label: 'Properties', href: '/properties', icon: Building2, requiredPermission: 'property.view' },
     { label: 'Gmail Hub', href: '/gmail', icon: Mail, requiredPermission: 'gmail.view' },
     { label: 'Settings', href: '/settings', icon: Settings, requiredPermission: 'settings.view' },
