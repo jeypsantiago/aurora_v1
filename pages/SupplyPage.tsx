@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   ShoppingCart,
   CheckCircle,
@@ -35,13 +35,12 @@ import {
   ArrowDownToLine,
   ChevronRight
 } from 'lucide-react';
-import { Card, Badge, Button, Tabs, ProgressBar, Modal, Input } from '../components/ui';
+import { Card, Badge, Button, Tabs, ProgressBar, Modal, Input, CreatableSelect } from '../components/ui';
 import { generateRIS } from '../services/risGenerator';
 import { PermissionGate } from '../components/PermissionGate';
 import { useRbac } from '../RbacContext';
 import { useUsers } from '../UserContext';
 import { useDialog } from '../DialogContext';
-import { useEffect } from 'react';
 import { useToast } from '../ToastContext';
 
 interface InventoryItem {
@@ -71,9 +70,9 @@ interface SupplyRequest {
 const RequestStatusTimeline = ({ status, isWide = false }: { status: RequestStatus; isWide?: boolean }) => {
   const steps: { label: RequestStatus; icon: any; color: string }[] = [
     { label: 'For Verification', icon: FileCheck, color: 'blue' },
-    { label: 'Awaiting Approval', icon: Fingerprint, color: 'amber' },
+    { label: 'Awaiting Approval', icon: Fingerprint, color: 'amber' }, // Fingerprint icon is still used here
     { label: 'For Issuance', icon: Package, color: 'indigo' },
-    { label: 'To Receive', icon: ArrowDownToLine, color: 'emerald' }
+    { label: 'To Receive', icon: ArrowDownToLine, color: 'emerald' } // ArrowDownToLine icon is still used here
   ];
 
   const getCurrentStepIndex = () => {
@@ -157,7 +156,7 @@ const RequestStatusTimeline = ({ status, isWide = false }: { status: RequestStat
 
               {!isLast && (
                 <div className={`flex items-center ${isWide ? 'flex-auto justify-center' : ''} ${index < currentStepIndex ? 'text-blue-500' : index === currentStepIndex ? 'text-blue-400' : 'text-zinc-400 dark:text-zinc-600'}`}>
-                  <ChevronRight
+                  <ChevronRight // ChevronRight icon is still used here
                     size={isWide ? 14 : 10}
                     strokeWidth={4}
                     className={`${index === currentStepIndex ? 'animate-pulse' : ''} ${index < currentStepIndex ? 'opacity-100' : 'opacity-60'}`}
@@ -177,9 +176,9 @@ const RequestBadge = ({ status }: { status: RequestStatus }) => {
   const getStatusConfig = (s: RequestStatus) => {
     switch (s) {
       case 'For Verification': return { color: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800', icon: FileCheck };
-      case 'Awaiting Approval': return { color: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800', icon: Fingerprint };
+      case 'Awaiting Approval': return { color: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800', icon: Fingerprint }; // Fingerprint icon is still used here
       case 'For Issuance': return { color: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800', icon: Package };
-      case 'To Receive': return { color: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800', icon: ArrowDownToLine };
+      case 'To Receive': return { color: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800', icon: ArrowDownToLine }; // ArrowDownToLine icon is still used here
       case 'History': return { color: 'bg-zinc-100 text-zinc-700 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700', icon: CheckCircle2 };
       case 'Rejected': return { color: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800', icon: XCircle };
       default: return { color: 'bg-zinc-100 text-zinc-700 border-zinc-200', icon: Info };
@@ -266,7 +265,11 @@ export const SupplyPage: React.FC = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<SupplyRequest | null>(null);
 
-  const unitMaster = ['Reams', 'Boxes', 'Bottles', 'Pcs', 'Packs', 'Rolls', 'Units', 'Sets', 'Forms'];
+  // Removed unitMaster state and its useEffect as CreatableSelect handles it internally
+  // const [unitMaster, setUnitMaster] = useState<string[]>(() => {
+  //   const saved = localStorage.getItem('supply_unit_master');
+  //   return saved ? JSON.parse(saved) : ['Reams', 'Forms', 'Units', 'Rolls', 'Boxes', 'Packs', 'Bottles'];
+  // });
 
   // --- Helper Functions ---
   const updateItemModifier = (itemId: string, delta: number) => {
@@ -437,6 +440,14 @@ export const SupplyPage: React.FC = () => {
 
   const handleSaveItem = () => {
     if (!itemFormData.name || !itemFormData.unit) return;
+
+    // Auto-save new unit to master data - now handled by CreatableSelect internally
+    // if (itemFormData.unit && !unitMaster.includes(itemFormData.unit)) {
+    //   const updatedUnits = [...unitMaster, itemFormData.unit];
+    //   setUnitMaster(updatedUnits);
+    //   localStorage.setItem('supply_unit_master', JSON.stringify(updatedUnits));
+    //   toast('info', `New unit "${itemFormData.unit}" added to master data`);
+    // }
 
     if (editingItem) {
       setInventory(inventory.map(i => i.id === editingItem.id ? { ...i, ...itemFormData } : i));
@@ -1154,16 +1165,13 @@ export const SupplyPage: React.FC = () => {
               placeholder="e.g. SECPA Security Paper"
             />
           </div>
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Unit of Measurement</label>
-            <select
-              value={itemFormData.unit}
-              onChange={e => setItemFormData({ ...itemFormData, unit: e.target.value })}
-              className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm outline-none font-bold"
-            >
-              {unitMaster.map(u => <option key={u} value={u}>{u}</option>)}
-            </select>
-          </div>
+          <CreatableSelect
+            label="Unit of Measurement"
+            value={itemFormData.unit}
+            onChange={(val) => setItemFormData({ ...itemFormData, unit: val })}
+            storageKey="supply_unit_master"
+            placeholder="Select or type unit..."
+          />
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Initial Physical Qty</label>

@@ -11,10 +11,13 @@
   "dependencies": {
     "@react-oauth/google": "^0.13.4",
     "axios": "^1.13.5",
+    "docxtemplater": "^3.68.2",
+    "fs": "^0.0.1-security",
     "jspdf": "^4.2.0",
     "jspdf-autotable": "^5.0.7",
     "lucide-react": "0.344.0",
     "pdf-lib": "^1.17.1",
+    "pizzip": "^3.2.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-router-dom": "^6.30.3",

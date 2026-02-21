@@ -1,6 +1,8 @@
 import React, { Fragment, useEffect } from 'react';
 import { LucideIcon, X, AlertCircle, Info, HelpCircle, CheckCircle } from 'lucide-react';
 
+export { CreatableSelect } from './ui/CreatableSelect';
+
 interface CardProps {
   children: React.ReactNode;
   className?: string;

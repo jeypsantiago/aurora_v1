@@ -25,9 +25,10 @@ import {
   FileBarChart,
   Loader2,
   Zap,
-  ArrowRight
+  ArrowRight,
+  AlertCircle
 } from 'lucide-react';
-import { Card, Badge, Button, Tabs, Modal, Input } from '../components/ui';
+import { Card, Badge, Button, Tabs, Modal, ModernDialog, Input, CreatableSelect } from '../components/ui';
 import { useDialog } from '../DialogContext';
 import { useRbac } from '../RbacContext';
 import { PermissionGate } from '../components/PermissionGate';
@@ -60,6 +61,15 @@ export const RecordPage: React.FC = () => {
   const [isExporting, setIsExporting] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const [dataCollections, setDataCollections] = useState<Record<string, string[]>>(() => {
+    const saved = localStorage.getItem('settings_data_collections');
+    return saved ? JSON.parse(saved) : {
+      'Positions': ['Admin Clerk', 'Statistician', 'Field Officer', 'Provincial Lead'],
+      'Municipalities': ['Baler', 'Casiguran', 'Dilasag', 'Dinalungan', 'Dingalan', 'Dipaculao', 'Maria Aurora', 'San Luis'],
+      'Genders': ['Male', 'Female', 'Prefer not to say']
+    };
+  });
 
   // Report Filters
   const [reportFilters, setReportFilters] = useState({
@@ -175,6 +185,29 @@ export const RecordPage: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.name) {
+      // Auto-save new Municipalities or Locations to Global Collections
+      const updatedCollections = { ...dataCollections };
+      let changed = false;
+
+      const checkAndAdd = (colName: string, value: string) => {
+        if (value && updatedCollections[colName] && !updatedCollections[colName].includes(value)) {
+          updatedCollections[colName] = [...updatedCollections[colName], value];
+          changed = true;
+          toast('info', `New item "${value}" added to global ${colName}`);
+        }
+      };
+
+      if (formData.type === 'Birth Certificate') {
+        checkAndAdd('Municipalities', formData.placeOfBirth);
+      } else {
+        checkAndAdd('Municipalities', formData.location);
+      }
+
+      if (changed) {
+        setDataCollections(updatedCollections);
+        localStorage.setItem('settings_data_collections', JSON.stringify(updatedCollections));
+      }
+
       const now = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true });
       const details: Record<string, string> = {};
       if (formData.type === 'Birth Certificate') {
@@ -465,16 +498,14 @@ export const RecordPage: React.FC = () => {
 
               {formData.type === 'Birth Certificate' ? (
                 <div className="space-y-4 animate-in fade-in duration-300">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">Place of Birth</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Baler, Aurora"
-                      value={formData.placeOfBirth}
-                      onChange={e => setFormData({ ...formData, placeOfBirth: e.target.value })}
-                      className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm outline-none font-bold"
-                    />
-                  </div>
+                  <CreatableSelect
+                    label="Place of Birth"
+                    value={formData.placeOfBirth}
+                    onChange={(val) => setFormData({ ...formData, placeOfBirth: val })}
+                    storageKey="record_municipalities"
+                    options={dataCollections['Municipalities'] || []} // Fallback to initial if not in storage yet
+                    placeholder="e.g. Baler, Aurora"
+                  />
                   <div className="grid grid-cols-1 gap-4">
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">Mother's Full Name</label>
@@ -499,14 +530,14 @@ export const RecordPage: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="animate-in fade-in duration-300 space-y-1.5">
-                  <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">Event Location / Venue</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. St. Louis Parish Church"
+                <div className="animate-in fade-in duration-300">
+                  <CreatableSelect
+                    label="Location / Parish / Hospital"
                     value={formData.location}
-                    onChange={e => setFormData({ ...formData, location: e.target.value })}
-                    className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm outline-none font-bold"
+                    onChange={(val) => setFormData({ ...formData, location: val })}
+                    storageKey="record_locations"
+                    options={dataCollections['Municipalities'] || []} // Fallback to initial if not in storage yet
+                    placeholder="e.g. St. Louis Parish Church"
                   />
                 </div>
               )}

@@ -14,7 +14,7 @@ import {
     Zap,
     ArrowRight
 } from 'lucide-react';
-import { Card, Badge, Button, Modal } from '../components/ui';
+import { Card, Badge, Button, Modal, CreatableSelect } from '../components/ui';
 import { useDialog } from '../DialogContext';
 import { useRbac } from '../RbacContext';
 import { PermissionGate } from '../components/PermissionGate';
@@ -37,12 +37,15 @@ export const EmploymentPage: React.FC = () => {
     const [lastCreated, setLastCreated] = useState<EmploymentRecord | null>(null);
 
     const [formData, setFormData] = useState({
-        month: '',
         name: '',
+        sex: 'Female' as 'Male' | 'Female',
         surveyProject: '',
+        designation: '',
         dateExecution: '',
-        duration: '',
-        focalPerson: ''
+        durationFrom: '',
+        durationTo: '',
+        focalPerson: '',
+        issuanceMonth: new Date().toLocaleString('en-US', { month: 'long' })
     });
 
     const [configs, setConfigs] = useState<EmploymentConfig>(() => {
@@ -59,6 +62,29 @@ export const EmploymentPage: React.FC = () => {
         const saved = localStorage.getItem('employment_focalPersons');
         return saved ? JSON.parse(saved) : ['Juan Dela Cruz', 'Maria Santos'];
     });
+    const [designations, setDesignations] = useState<string[]>(() => {
+        const saved = localStorage.getItem('employment_designations');
+        return saved ? JSON.parse(saved) : ['Admin Clerk', 'Statistician', 'Field Officer', 'Provincial Lead'];
+    });
+
+    const months = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    ];
+
+    const formatDate = (dateStr: string) => {
+        if (!dateStr) return '';
+        try {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', {
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric'
+            });
+        } catch (e) {
+            return dateStr;
+        }
+    };
 
     useEffect(() => {
         const savedRecords = localStorage.getItem('aurora_employment_records');
@@ -93,12 +119,15 @@ export const EmploymentPage: React.FC = () => {
         setIsEditMode(false);
         setEditingId(null);
         setFormData({
-            month: new Date().toLocaleString('default', { month: 'long', year: 'numeric' }),
             name: '',
+            sex: 'Female',
             surveyProject: surveyProjects.length > 0 ? surveyProjects[0] : '',
+            designation: '',
             dateExecution: new Date().toISOString().split('T')[0],
-            duration: '1 Month',
-            focalPerson: focalPersons.length > 0 ? focalPersons[0] : ''
+            durationFrom: new Date().toISOString().split('T')[0],
+            durationTo: new Date().toISOString().split('T')[0],
+            focalPerson: focalPersons.length > 0 ? focalPersons[0] : '',
+            issuanceMonth: new Date().toLocaleString('en-US', { month: 'long' })
         });
         setIsModalOpen(true);
     };
@@ -107,12 +136,15 @@ export const EmploymentPage: React.FC = () => {
         setIsEditMode(true);
         setEditingId(record.id);
         setFormData({
-            month: record.month,
             name: record.name,
+            sex: record.sex,
             surveyProject: record.surveyProject,
+            designation: record.designation,
             dateExecution: record.dateExecution,
-            duration: record.duration,
-            focalPerson: record.focalPerson
+            durationFrom: record.durationFrom,
+            durationTo: record.durationTo,
+            focalPerson: record.focalPerson,
+            issuanceMonth: record.issuanceMonth || new Date().toLocaleString('en-US', { month: 'long' })
         });
         setIsModalOpen(true);
     };
@@ -120,6 +152,18 @@ export const EmploymentPage: React.FC = () => {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (formData.name && formData.surveyProject && formData.focalPerson) {
+            // Note: CreatableSelect now handles auto-save to localStorage internally
+            // but we still update the local state here so the UI reflects it immediately
+            if (formData.designation && !designations.includes(formData.designation)) {
+                setDesignations([...designations, formData.designation]);
+            }
+            if (formData.surveyProject && !surveyProjects.includes(formData.surveyProject)) {
+                setSurveyProjects([...surveyProjects, formData.surveyProject]);
+            }
+            if (formData.focalPerson && !focalPersons.includes(formData.focalPerson)) {
+                setFocalPersons([...focalPersons, formData.focalPerson]);
+            }
+
             if (isEditMode && editingId) {
                 setRecords(records.map(r => {
                     if (r.id === editingId) {
@@ -135,7 +179,7 @@ export const EmploymentPage: React.FC = () => {
                     serialNumber: generateSerialNumber(),
                     createdAt: new Date().toISOString(),
                     ...formData
-                };
+                } as any; // Cast as any to include issuanceMonth if not in type yet
                 setRecords([newRecord, ...records]);
                 setLastCreated(newRecord);
                 setIsModalOpen(false);
@@ -154,9 +198,14 @@ export const EmploymentPage: React.FC = () => {
         }
     };
 
-    const handleGeneratePDF = (record: EmploymentRecord) => {
+    const handleGeneratePDF = async (record: EmploymentRecord) => {
         toast('success', `Generating COE for ${record.name}...`);
-        generateCOE(record);
+        try {
+            await generateCOE(record, records);
+            toast('success', `Download triggered for ${record.name}`);
+        } catch (error: any) {
+            toast('error', `Generation failed: ${error.message}`);
+        }
     };
 
     return (
@@ -194,16 +243,18 @@ export const EmploymentPage: React.FC = () => {
                         <table className="w-full text-left min-w-[800px]">
                             <thead>
                                 <tr className="border-b border-zinc-100 dark:border-zinc-800">
-                                    <th className="pb-4 px-3 sm:px-0 text-[13px] font-black text-zinc-400 uppercase tracking-widest">Serial No.</th>
-                                    <th className="pb-4 px-3 sm:px-0 text-[13px] font-black text-zinc-400 uppercase tracking-widest">Personnel Name</th>
-                                    <th className="pb-4 px-3 sm:px-0 text-[13px] font-black text-zinc-400 uppercase tracking-widest">Survey / Project</th>
+                                    <th className="pb-4 px-3 sm:px-0 text-[13px] font-black text-zinc-400 uppercase tracking-widest">Serial No. / Date</th>
+                                    <th className="pb-4 px-3 sm:px-0 text-[13px] font-black text-zinc-400 uppercase tracking-widest">Personnel / Sex</th>
+                                    <th className="pb-4 px-3 sm:px-0 text-[13px] font-black text-zinc-400 uppercase tracking-widest">Designation</th>
                                     <th className="pb-4 px-3 sm:px-0 text-[13px] font-black text-zinc-400 uppercase tracking-widest">Focal Person</th>
+                                    <th className="pb-4 px-3 sm:px-0 text-[13px] font-black text-zinc-400 uppercase tracking-widest">Survey / Project</th>
+                                    <th className="pb-4 px-3 sm:px-0 text-[13px] font-black text-zinc-400 uppercase tracking-widest">Duration</th>
                                     <th className="pb-4 px-3 sm:px-0 text-[13px] font-black text-zinc-400 uppercase tracking-widest text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-zinc-50 dark:divide-zinc-800/50">
                                 {filteredRecords.length > 0 ? filteredRecords.map((row) => (
-                                    <tr key={row.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-900/40">
+                                    <tr key={row.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-900/40 border-b border-zinc-50 dark:border-zinc-800/50">
                                         <td className="py-4 px-3 sm:px-0 cursor-pointer group/reg" onClick={() => openEditModal(row)}>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-[13px] font-black text-zinc-900 dark:text-white tracking-tight group-hover/reg:text-blue-600 transition-colors">{row.serialNumber}</span>
@@ -211,13 +262,25 @@ export const EmploymentPage: React.FC = () => {
                                                     <ArrowRight size={10} />
                                                 </div>
                                             </div>
-                                            <div className="text-[10px] text-zinc-500 font-medium">{row.dateExecution}</div>
+                                            <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-tight mt-1">Exec: {formatDate(row.dateExecution)}</div>
                                         </td>
-                                        <td className="py-4 px-3 sm:px-0 text-[13px] font-bold tracking-tight">{row.name}</td>
                                         <td className="py-4 px-3 sm:px-0">
-                                            <Badge variant="info" className="!py-1">{row.surveyProject}</Badge>
+                                            <div className="text-[13px] font-bold tracking-tight text-zinc-900 dark:text-white uppercase">{row.name}</div>
+                                            <div className="text-[10px] text-zinc-500 font-medium">{row.sex}</div>
                                         </td>
-                                        <td className="py-4 px-3 sm:px-0 text-[13px] font-medium text-zinc-600 dark:text-zinc-400">{row.focalPerson}</td>
+                                        <td className="py-4 px-3 sm:px-0">
+                                            <div className="text-[12px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-tight">{row.designation}</div>
+                                        </td>
+                                        <td className="py-4 px-3 sm:px-0">
+                                            <div className="text-[12px] font-bold text-zinc-900 dark:text-white uppercase tracking-tight">{row.focalPerson}</div>
+                                        </td>
+                                        <td className="py-4 px-3 sm:px-0">
+                                            <Badge variant="info" className="!py-1 !px-2 !text-[9px] font-black uppercase tracking-tight">{row.surveyProject}</Badge>
+                                        </td>
+                                        <td className="py-4 px-3 sm:px-0">
+                                            <div className="text-[11px] font-bold text-zinc-600 dark:text-zinc-300 whitespace-nowrap">{formatDate(row.durationFrom)}</div>
+                                            <div className="text-[11px] font-bold text-zinc-400">to {formatDate(row.durationTo)}</div>
+                                        </td>
                                         <td className="py-4 px-3 sm:px-0 text-right">
                                             <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <PermissionGate requires="employment.export">
@@ -234,7 +297,7 @@ export const EmploymentPage: React.FC = () => {
                                     </tr>
                                 )) : (
                                     <tr>
-                                        <td colSpan={5} className="py-10 text-center text-zinc-500 text-xs">No records found. Create one.</td>
+                                        <td colSpan={6} className="py-10 text-center text-zinc-500 text-xs">No records found. Create one.</td>
                                     </tr>
                                 )}
                             </tbody>
@@ -258,53 +321,99 @@ export const EmploymentPage: React.FC = () => {
                 }
             >
                 <form className="space-y-5" onSubmit={handleSubmit}>
-                    <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Personnel Full Name</label>
-                        <input
-                            type="text"
-                            value={formData.name}
-                            onChange={e => setFormData({ ...formData, name: e.target.value })}
-                            required
-                            placeholder="e.g. John Doe"
-                            className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-blue-500 font-bold"
+                    {!isEditMode && (
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Serial Number Preview</label>
+                                <div className="w-full bg-zinc-100 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm font-black text-zinc-500 flex items-center">
+                                    {generateSerialNumber()}
+                                </div>
+                            </div>
+                            <CreatableSelect
+                                label="Month Selector"
+                                value={formData.issuanceMonth}
+                                onChange={(val) => setFormData({ ...formData, issuanceMonth: val })}
+                                options={months}
+                                placeholder="Select Month..."
+                            />
+                        </div>
+                    )}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="space-y-1.5 sm:col-span-2">
+                            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Personnel Full Name</label>
+                            <input
+                                type="text"
+                                value={formData.name}
+                                onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                required
+                                placeholder="e.g. John Doe"
+                                className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-blue-500 font-bold"
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Sex</label>
+                            <select
+                                value={formData.sex}
+                                onChange={e => setFormData({ ...formData, sex: e.target.value as 'Male' | 'Female' })}
+                                className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-blue-500 font-bold"
+                            >
+                                <option value="Female">Female</option>
+                                <option value="Male">Male</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <CreatableSelect
+                            label="Survey / Project"
+                            value={formData.surveyProject}
+                            onChange={(val) => setFormData({ ...formData, surveyProject: val })}
+                            options={surveyProjects}
+                            storageKey="employment_surveyProjects"
+                            placeholder="Select or type project..."
+                        />
+                        <CreatableSelect
+                            label="Designation"
+                            value={formData.designation}
+                            onChange={(val) => setFormData({ ...formData, designation: val })}
+                            options={designations}
+                            storageKey="employment_designations"
+                            placeholder="Select or type designation..."
                         />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Survey / Project</label>
-                            <select
-                                value={formData.surveyProject}
-                                onChange={e => setFormData({ ...formData, surveyProject: e.target.value })}
-                                className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-blue-500 font-bold"
-                            >
-                                <option value="">Select Project</option>
-                                {surveyProjects.map(proj => <option key={proj} value={proj}>{proj}</option>)}
-                            </select>
+                            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Contract Duration From</label>
+                            <input
+                                type="date"
+                                value={formData.durationFrom}
+                                onChange={e => setFormData({ ...formData, durationFrom: e.target.value })}
+                                required
+                                className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm outline-none font-bold focus:ring-1 focus:ring-blue-500"
+                            />
+                            {formData.durationFrom && (
+                                <div className="text-[9px] font-black text-blue-500 uppercase tracking-widest px-1 mt-1 animate-in fade-in slide-in-from-top-1">
+                                    {formatDate(formData.durationFrom)}
+                                </div>
+                            )}
                         </div>
                         <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Focal Person</label>
-                            <select
-                                value={formData.focalPerson}
-                                onChange={e => setFormData({ ...formData, focalPerson: e.target.value })}
-                                className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-blue-500 font-bold"
-                            >
-                                <option value="">Select Person</option>
-                                {focalPersons.map(person => <option key={person} value={person}>{person}</option>)}
-                            </select>
+                            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Contract Duration To</label>
+                            <input
+                                type="date"
+                                value={formData.durationTo}
+                                onChange={e => setFormData({ ...formData, durationTo: e.target.value })}
+                                required
+                                className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm outline-none font-bold focus:ring-1 focus:ring-blue-500"
+                            />
+                            {formData.durationTo && (
+                                <div className="text-[9px] font-black text-blue-500 uppercase tracking-widest px-1 mt-1 animate-in fade-in slide-in-from-top-1">
+                                    {formatDate(formData.durationTo)}
+                                </div>
+                            )}
                         </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Duration of Contract</label>
-                        <input
-                            type="text"
-                            value={formData.duration}
-                            onChange={e => setFormData({ ...formData, duration: e.target.value })}
-                            required
-                            placeholder="e.g. 1 Month, 30 Days"
-                            className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm outline-none font-bold"
-                        />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
@@ -314,19 +423,22 @@ export const EmploymentPage: React.FC = () => {
                                 type="date"
                                 value={formData.dateExecution}
                                 onChange={e => setFormData({ ...formData, dateExecution: e.target.value })}
-                                className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm outline-none font-bold"
+                                className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm outline-none font-bold focus:ring-1 focus:ring-blue-500"
                             />
+                            {formData.dateExecution && (
+                                <div className="text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-widest px-1 mt-1">
+                                    {formatDate(formData.dateExecution)}
+                                </div>
+                            )}
                         </div>
-                        <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Month of Engagement</label>
-                            <input
-                                type="text"
-                                value={formData.month}
-                                onChange={e => setFormData({ ...formData, month: e.target.value })}
-                                placeholder="e.g. January 2024"
-                                className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm outline-none font-bold"
-                            />
-                        </div>
+                        <CreatableSelect
+                            label="Focal Person"
+                            value={formData.focalPerson}
+                            onChange={(val) => setFormData({ ...formData, focalPerson: val })}
+                            options={focalPersons}
+                            storageKey="employment_focalPersons"
+                            placeholder="Select or type person..."
+                        />
                     </div>
 
                     {!isEditMode && (

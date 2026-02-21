@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Settings,
   Database,
@@ -83,7 +84,18 @@ interface RISConfig {
 export const SettingsPage: React.FC = () => {
   const { alert, confirm, prompt } = useDialog();
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('record');
+
+  // Sync activeTab with URL parameter ?tab=...
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && ['record', 'supply', 'employment', 'property', 'users', 'gmail'].includes(tabParam)) {
+      setActiveTab(tabParam);
+      // Optional: Clear the param after reading to keep URL clean, 
+      // but usually better to keep it for refresh persistence
+    }
+  }, [searchParams]);
   const [recordSubTab, setRecordSubTab] = useState('docs');
   const [supplySubTab, setSupplySubTab] = useState('ris');
   const [usersSubTab, setUsersSubTab] = useState('accounts');
@@ -119,10 +131,13 @@ export const SettingsPage: React.FC = () => {
   });
 
   // -- Data Collections State --
-  const [dataCollections, setDataCollections] = useState<Record<string, string[]>>({
-    'Positions': ['Admin Clerk', 'Statistician', 'Field Officer', 'Provincial Lead'],
-    'Municipalities': ['Baler', 'Casiguran', 'Dilasag', 'Dinalungan', 'Dingalan', 'Dipaculao', 'Maria Aurora', 'San Luis'],
-    'Genders': ['Male', 'Female', 'Prefer not to say']
+  const [dataCollections, setDataCollections] = useState<Record<string, string[]>>(() => {
+    const saved = localStorage.getItem('settings_data_collections');
+    return saved ? JSON.parse(saved) : {
+      'Positions': ['Admin Clerk', 'Statistician', 'Field Officer', 'Provincial Lead'],
+      'Municipalities': ['Baler', 'Casiguran', 'Dilasag', 'Dinalungan', 'Dingalan', 'Dipaculao', 'Maria Aurora', 'San Luis'],
+      'Genders': ['Male', 'Female', 'Prefer not to say']
+    };
   });
   const [selectedCollection, setSelectedCollection] = useState<string | null>(null);
 
@@ -145,14 +160,20 @@ export const SettingsPage: React.FC = () => {
   const [docForRef, setDocForRef] = useState<DocType | null>(null);
 
   // -- State for Supply Settings --
-  const [risConfig, setRisConfig] = useState<RISConfig>({
-    prefix: 'RIS',
-    separator: '-',
-    padding: 6,
-    increment: 1,
-    startNumber: 1
+  const [risConfig, setRisConfig] = useState<RISConfig>(() => {
+    const saved = localStorage.getItem('supply_ris_config');
+    return saved ? JSON.parse(saved) : {
+      prefix: 'RIS',
+      separator: '-',
+      padding: 6,
+      increment: 1,
+      startNumber: 1
+    };
   });
-  const [unitMaster, setUnitMaster] = useState(['Reams', 'Forms', 'Units', 'Rolls', 'Boxes', 'Packs', 'Bottles']);
+  const [unitMaster, setUnitMaster] = useState<string[]>(() => {
+    const saved = localStorage.getItem('supply_unit_master');
+    return saved ? JSON.parse(saved) : ['Reams', 'Forms', 'Units', 'Rolls', 'Boxes', 'Packs', 'Bottles'];
+  });
   const [restockThreshold, setRestockThreshold] = useState(20);
   const [hubIntegration, setHubIntegration] = useState(true);
 
@@ -176,6 +197,11 @@ export const SettingsPage: React.FC = () => {
   const [focalPersons, setFocalPersons] = useState<string[]>(() => {
     const saved = localStorage.getItem('employment_focalPersons');
     return saved ? JSON.parse(saved) : ['Juan Dela Cruz', 'Maria Santos'];
+  });
+
+  const [designations, setDesignations] = useState<string[]>(() => {
+    const saved = localStorage.getItem('employment_designations');
+    return saved ? JSON.parse(saved) : ['Admin Clerk', 'Statistician', 'Field Officer', 'Provincial Lead'];
   });
 
   // -- State for Gmail Settings --
@@ -230,6 +256,10 @@ export const SettingsPage: React.FC = () => {
     localStorage.setItem('employment_config', JSON.stringify(employmentConfig));
     localStorage.setItem('employment_surveyProjects', JSON.stringify(surveyProjects));
     localStorage.setItem('employment_focalPersons', JSON.stringify(focalPersons));
+    localStorage.setItem('employment_designations', JSON.stringify(designations));
+    localStorage.setItem('supply_ris_config', JSON.stringify(risConfig));
+    localStorage.setItem('supply_unit_master', JSON.stringify(unitMaster));
+    localStorage.setItem('settings_data_collections', JSON.stringify(dataCollections));
 
     setIsSaved(true);
     toast('success', 'System settings updated successfully');
@@ -287,6 +317,17 @@ export const SettingsPage: React.FC = () => {
 
   const removeFocalPerson = (person: string) => {
     setFocalPersons(focalPersons.filter(p => p !== person));
+  };
+
+  const addDesignation = async () => {
+    const title = await prompt("Enter new Designation title:");
+    if (title && !designations.includes(title)) {
+      setDesignations([...designations, title]);
+    }
+  };
+
+  const removeDesignation = (title: string) => {
+    setDesignations(designations.filter(t => t !== title));
   };
 
   const toggleDocType = (index: number) => {
@@ -974,6 +1015,23 @@ export const SettingsPage: React.FC = () => {
                         ))}
                         <button onClick={addFocalPerson} className="px-4 py-2 rounded-full border-2 border-dashed border-zinc-200 dark:border-zinc-800 text-[10px] font-black text-zinc-400 uppercase tracking-widest hover:border-blue-500 hover:text-blue-600 transition-all flex items-center gap-2">
                           <Plus size={14} /> Add Person
+                        </button>
+                      </div>
+                    </div>
+                  </Card>
+                  <Card title="Designation Master" description="Manage job titles for employment records">
+                    <div className="space-y-6">
+                      <div className="flex flex-wrap gap-2">
+                        {designations.map(title => (
+                          <Badge key={title} variant="info" className="!py-2 !px-4 flex items-center gap-2 group">
+                            {title}
+                            <button onClick={() => removeDesignation(title)} className="text-blue-400 hover:text-red-500 transition-colors">
+                              <Trash2 size={12} />
+                            </button>
+                          </Badge>
+                        ))}
+                        <button onClick={addDesignation} className="px-4 py-2 rounded-full border-2 border-dashed border-zinc-200 dark:border-zinc-800 text-[10px] font-black text-zinc-400 uppercase tracking-widest hover:border-blue-500 hover:text-blue-600 transition-all flex items-center gap-2">
+                          <Plus size={14} /> Add Designation
                         </button>
                       </div>
                     </div>

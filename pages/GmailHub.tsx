@@ -125,7 +125,7 @@ export const GmailHub: React.FC = () => {
                 <p className="text-zinc-500 dark:text-zinc-400 max-w-sm mb-10 text-sm font-medium leading-relaxed">
                     Account connection and approved sender lists are now managed in the system settings.
                 </p>
-                <Button variant="blue" onClick={() => window.location.hash = '#/settings'} className="px-10 h-14 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-blue-500/20">
+                <Button variant="blue" onClick={() => window.location.hash = '#/settings?tab=gmail'} className="px-10 h-14 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-blue-500/20">
                     Go to Settings
                 </Button>
             </div>
@@ -150,7 +150,7 @@ export const GmailHub: React.FC = () => {
                         {loading ? <Loader2 size={14} className="mr-2 animate-spin" /> : <RefreshCw size={14} className="mr-2" />}
                         Sync Inbox
                     </Button>
-                    <Button variant="ghost" onClick={() => window.location.hash = '#/settings'} className="h-11 w-11 p-0 rounded-xl bg-zinc-100 dark:bg-zinc-900">
+                    <Button variant="ghost" onClick={() => window.location.hash = '#/settings?tab=gmail'} className="h-11 w-11 p-0 rounded-xl bg-zinc-100 dark:bg-zinc-900">
                         <Settings2 size={18} />
                     </Button>
                 </div>

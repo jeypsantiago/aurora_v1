@@ -47,13 +47,16 @@ export interface SupplySignatures {
 
 export interface EmploymentRecord {
   id: string;
-  month: string;
   serialNumber: string;
   name: string;
+  sex: 'Male' | 'Female';
   surveyProject: string;
+  designation: string;
   dateExecution: string;
-  duration: string;
+  durationFrom: string;
+  durationTo: string;
   focalPerson: string;
+  issuanceMonth?: string;
   createdAt: string;
 }
 
